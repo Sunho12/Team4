@@ -7,36 +7,60 @@ import { searchSKTStores, formatStoreResults } from '@/lib/utils/storeSearch'
 
 /**
  * 대리점 검색 요청 감지
- * - 이전 메시지에 "대리점" 또는 "지역" 키워드가 있고
+ * - 이전 메시지에 대리점 관련 키워드가 있고
  * - 현재 메시지가 지역명으로 보이는 경우
  */
 function shouldSearchStores(recentMessages: any[], currentMessage: string): boolean {
-  // 최근 3개 메시지 확인
+  // 최근 5개 메시지 확인 (더 넓은 컨텍스트)
   const recentContent = recentMessages
-    .slice(-3)
+    .slice(-5)
     .map(m => m.content)
     .join(' ')
 
+  // 대리점 추천 관련 키워드 확장
   const hasStoreKeyword =
     recentContent.includes('대리점') ||
     recentContent.includes('지역') ||
-    recentContent.includes('추천')
+    recentContent.includes('추천') ||
+    recentContent.includes('근처') ||
+    recentContent.includes('위치') ||
+    recentContent.includes('어디') ||
+    recentContent.includes('어느')
 
-  // 현재 메시지가 지역명으로 보이는지 (더 관대하게)
+  // 사용자가 거부 의사를 표현했는지 확인
+  const isRejection =
+    currentMessage.includes('아니') ||
+    currentMessage.includes('괜찮') ||
+    currentMessage.includes('됐') ||
+    currentMessage.includes('필요없')
+
+  // 현재 메시지가 지역명으로 보이는지 (개선된 로직)
   const looksLikeLocation =
-    currentMessage.length < 30 &&
-    (currentMessage.includes('동') ||
-     currentMessage.includes('구') ||
-     currentMessage.includes('로') ||
-     currentMessage.includes('역') ||
-     /^[가-힣\s]+$/.test(currentMessage)) && // 한글만 포함
+    currentMessage.length < 50 && // 길이 제한 완화
     !currentMessage.includes('?') && // 질문이 아님
     !currentMessage.includes('네') && // "네"가 아님
-    !currentMessage.includes('아니')
+    !isRejection && // 거부 의사가 아님
+    (
+      // 한글 지역 패턴 매칭
+      currentMessage.includes('동') ||
+      currentMessage.includes('구') ||
+      currentMessage.includes('시') ||
+      currentMessage.includes('군') ||
+      currentMessage.includes('로') ||
+      currentMessage.includes('가') ||
+      currentMessage.includes('역') ||
+      // 또는 대부분이 한글로만 구성
+      (/^[가-힣\s\d-]+$/.test(currentMessage) && currentMessage.length >= 2)
+    )
 
-  console.log('Store search check:', { hasStoreKeyword, looksLikeLocation, message: currentMessage })
+  console.log('Store search check:', {
+    hasStoreKeyword,
+    looksLikeLocation,
+    isRejection,
+    message: currentMessage
+  })
 
-  return hasStoreKeyword && looksLikeLocation
+  return hasStoreKeyword && looksLikeLocation && !isRejection
 }
 
 export async function POST(request: Request) {
