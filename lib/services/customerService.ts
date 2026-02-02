@@ -37,29 +37,72 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     return []
   }
 
-  // profiles 테이블에서만 검색 (회원가입한 고객)
-  const { data: profileResults, error: profileError } = await supabase
+  // 디버깅: profiles 테이블의 모든 데이터 확인
+  const { data: allData, error: allError } = await supabase
     .from('profiles')
-    .select(`
-      id,
-      full_name,
-      phone_number,
-      birthdate,
-      plan_name,
-      plan_price,
-      bundle_types,
-      device_model,
-      device_remaining_months,
-      created_at
-    `)
-    .or(`full_name.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%`)
-    .eq('role', 'customer')
-    .order('created_at', { ascending: false })
-    .limit(50)
+    .select('*')
+    .limit(5)
 
-  if (profileError) {
-    console.error('❌ Profile search error:', profileError)
-    throw new Error(`Failed to search customers: ${profileError.message}`)
+  console.log('🔍 Sample profiles data:', JSON.stringify(allData, null, 2))
+  console.log('🔍 Sample profiles error:', allError)
+
+  // profiles 테이블에서 검색 (이름 또는 전화번호)
+  let profileResults: any[] = []
+
+  try {
+    // 이름으로 검색 (존재하는 필드만 조회)
+    const { data: nameResults, error: nameError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        full_name,
+        phone_number,
+        birthdate,
+        created_at
+      `)
+      .ilike('full_name', `%${cleanQuery}%`)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    console.log('🔍 Name search results:', nameResults?.length || 0, 'found')
+    console.log('🔍 Name search data:', JSON.stringify(nameResults, null, 2))
+    if (nameError) {
+      console.error('❌ Name search error:', nameError)
+    }
+
+    // 전화번호로 검색 (존재하는 필드만 조회)
+    const { data: phoneResults, error: phoneError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        full_name,
+        phone_number,
+        birthdate,
+        created_at
+      `)
+      .ilike('phone_number', `%${cleanQuery}%`)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    console.log('🔍 Phone search results:', phoneResults?.length || 0, 'found')
+    if (phoneError) {
+      console.error('❌ Phone search error:', phoneError)
+    }
+
+    // 결과 합치기 (중복 제거)
+    const nameIds = new Set((nameResults || []).map(r => r.id))
+    const phoneIds = new Set((phoneResults || []).map(r => r.id))
+    const allIds = new Set([...nameIds, ...phoneIds])
+
+    const allResults = [...(nameResults || []), ...(phoneResults || [])]
+    profileResults = Array.from(allIds).map(id =>
+      allResults.find(r => r.id === id)
+    ).filter(Boolean)
+
+    console.log(`✅ Found ${profileResults.length} unique customers (${nameResults?.length || 0} by name, ${phoneResults?.length || 0} by phone)`)
+  } catch (error: any) {
+    console.error('❌ Search error:', error)
+    throw new Error(`Failed to search customers: ${error.message}`)
   }
 
   // profiles 결과를 CustomerSearchResult 형식으로 변환
@@ -68,11 +111,11 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     customer_name: profile.full_name,
     customer_phone: profile.phone_number,
     customer_birth: profile.birthdate,
-    plan_name: profile.plan_name,
-    plan_price: profile.plan_price,
-    bundle_type: profile.bundle_types?.join(', ') || '없음',
-    device_model: profile.device_model,
-    device_remaining_months: profile.device_remaining_months,
+    plan_name: null,
+    plan_price: null,
+    bundle_type: null,
+    device_model: null,
+    device_remaining_months: null,
     created_at: profile.created_at,
     source: 'profile' as const,
     user_id: profile.id,
@@ -195,12 +238,12 @@ export async function getCustomerDetail(customerId: string) {
     sessions = userSessions || []
   }
 
-  // Get profile data (including birthdate, plan, device info) if we have a userId
+  // Get profile data (including birthdate) if we have a userId
   let profile = null
   if (userId) {
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('birthdate, full_name, plan_name, plan_price, bundle_types, device_model, device_remaining_months')
+      .select('birthdate, full_name')
       .eq('id', userId)
       .single()
 
@@ -222,11 +265,6 @@ export async function getCustomerDetail(customerId: string) {
   const sessionWithProfile = {
     ...session,
     birthdate: profile?.birthdate || null,
-    plan_name: profile?.plan_name || null,
-    plan_price: profile?.plan_price || null,
-    bundle_types: profile?.bundle_types || [],
-    device_model: profile?.device_model || null,
-    device_remaining_months: profile?.device_remaining_months || null,
   }
 
   // Get predictions for all sessions of this customer
