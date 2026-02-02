@@ -3,7 +3,9 @@
     "allow": [
       "Bash(test:*)",
       "Bash(npm install)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npm run seed:knowledge:*)",
+      "Bash(npm install:*)"
     ]
   },
   "enabledMcpjsonServers": [

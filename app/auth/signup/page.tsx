@@ -35,7 +35,7 @@ export default function SignUpPage() {
         throw new Error(data.error)
       }
 
-      router.push('/auth/login?registered=true')
+      router.push('/user/login?registered=true')
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -102,7 +102,7 @@ export default function SignUpPage() {
 
             <div className="text-center text-sm text-muted-foreground">
               이미 계정이 있으신가요?{' '}
-              <Link href="/auth/login" className="text-primary hover:underline font-medium">
+              <Link href="/user/login" className="text-primary hover:underline font-medium">
                 로그인
               </Link>
             </div>

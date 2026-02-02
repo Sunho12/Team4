@@ -138,7 +138,13 @@ export default function TworldPage() {
             <a href="#">혜택</a>
             <a href="#">메뉴</a>
           </nav>
-          <div className="user-menu">로그인 | 회원가입 | 검색</div>
+          <div className="user-menu">
+            <Link href="/user/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
+            {' | '}
+            <Link href="/auth/signup" style={{ textDecoration: 'none', color: 'inherit' }}>회원가입</Link>
+            {' | '}
+            <a href="#" style={{ textDecoration: 'none', color: 'inherit' }}>검색</a>
+          </div>
         </div>
       </header>
 
@@ -211,16 +217,18 @@ export default function TworldPage() {
       <div
         className="character-container"
         suppressHydrationWarning
-      >
-        <model-viewer
-          src="/Tworld/models/model_bye.glb"
-          camera-orbit="0deg 75deg 105%"
-          animation-name="*"
-          autoplay
-          loop
-          suppressHydrationWarning>
-        </model-viewer>
-      </div>
+        dangerouslySetInnerHTML={{
+          __html: `
+            <model-viewer
+              src="/Tworld/models/model_bye.glb"
+              camera-orbit="0deg 75deg 105%"
+              animation-name="*"
+              autoplay
+              loop>
+            </model-viewer>
+          `
+        }}
+      />
     </>
   )
 }

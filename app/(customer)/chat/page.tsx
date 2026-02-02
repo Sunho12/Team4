@@ -24,8 +24,8 @@ export default function ChatPage() {
       const authResponse = await fetch('/api/auth/me')
 
       if (!authResponse.ok) {
-        // Not authenticated - redirect to login
-        router.push('/auth/login?returnUrl=/chat')
+        // Not authenticated - redirect to user login
+        router.push('/user/login')
         return
       }
 
