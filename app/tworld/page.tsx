@@ -1033,7 +1033,7 @@ export default function TworldPage() {
             />
           </div>
           <nav className="nav">
-            <a onClick={() => alert('준비 중입니다')}>T 다이렉트샵</a>
+            <a href="https://shop.tworld.co.kr/shop/main?referrer=" target="_blank" rel="noopener noreferrer">T 다이렉트샵</a>
             <Link href="/customer/history" style={{ textDecoration: 'none', color: 'inherit' }}>MY</Link>
             <a onClick={() => setActiveModal('membership')}>혜택</a>
             <a onClick={() => setActiveModal('search')}>검색</a>
