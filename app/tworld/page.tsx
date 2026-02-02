@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 type ModalType = 'usage' | 'plan' | 'payment' | 'membership' | 'gift' | 'smishing' | 'usedphone' | 'search' | null
 
@@ -10,6 +10,8 @@ export default function TworldPage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<'eat' | 'buy' | 'play'>('eat')
   const [currentBanner, setCurrentBanner] = useState(1)
+  const [showAssistant, setShowAssistant] = useState(false)
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     // model-viewer 스크립트 동적 로드
@@ -25,12 +27,90 @@ export default function TworldPage() {
     }
   }, [])
 
+  // Idle timer logic
+  useEffect(() => {
+    console.log('[DEBUG] Modal changed:', activeModal)
+
+    // 모달이 없으면 assistant 숨김
+    if (!activeModal) {
+      console.log('[DEBUG] No modal, hiding assistant')
+      setShowAssistant(false)
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+        idleTimerRef.current = null
+      }
+      return
+    }
+
+    console.log('[DEBUG] Modal opened, starting timer')
+
+    const resetTimer = () => {
+      console.log('[DEBUG] Timer reset')
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+      }
+
+      idleTimerRef.current = setTimeout(() => {
+        console.log('[DEBUG] 5 seconds passed, showing assistant')
+        setShowAssistant(true)
+      }, 5000) // 5초
+    }
+
+    // 초기 타이머 시작
+    resetTimer()
+
+    // 클릭 이벤트만 감지 (마우스 움직임, 스크롤은 무시)
+    const handleClick = () => {
+      console.log('[DEBUG] Click detected, resetting timer')
+      resetTimer()
+    }
+
+    window.addEventListener('click', handleClick)
+
+    return () => {
+      console.log('[DEBUG] Cleanup')
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+        idleTimerRef.current = null
+      }
+      window.removeEventListener('click', handleClick)
+    }
+  }, [activeModal])
+
+  // showAssistant 변경 감지
+  useEffect(() => {
+    console.log('[DEBUG] showAssistant changed to:', showAssistant)
+  }, [showAssistant])
+
   // 모달 닫기
   const closeModal = () => setActiveModal(null)
 
   // 배너 전환
   const nextBanner = () => setCurrentBanner(currentBanner === 2 ? 1 : 2)
   const prevBanner = () => setCurrentBanner(currentBanner === 1 ? 2 : 1)
+
+  // Context 메시지 매핑
+  const getContextMessage = (): string => {
+    const contextMap: Record<string, string> = {
+      'usage': '실시간 사용량을 확인하고 계시네요! 데이터 요금제나 추가 옵션에 대해 궁금하신 점이 있으신가요?',
+      'plan': '요금제 변경을 고려하고 계시군요! 고객님께 최적의 요금제를 추천해드릴 수 있어요.',
+      'payment': '요금 납부 화면을 보고 계시네요. 납부 방법이나 요금 내역에 대해 도움이 필요하신가요?',
+      'membership': '멤버십 혜택을 확인하고 계시네요! 더 많은 혜택 정보를 원하시나요?',
+      'gift': '데이터 선물 기능을 살펴보고 계시군요! 선물 방법에 대해 도움드릴까요?',
+      'smishing': '스미싱 대처 방법을 확인하고 계시네요. 추가로 보안 관련 문의사항이 있으신가요?',
+      'usedphone': '중고폰 판매를 고려하고 계시군요! 판매 절차나 예상 가격에 대해 궁금하신 점이 있으신가요?',
+      'search': '무엇을 찾고 계신가요? 제가 도와드릴 수 있어요!'
+    }
+
+    return activeModal ? contextMap[activeModal] || '무엇을 도와드릴까요?' : '무엇을 도와드릴까요?'
+  }
+
+  // Assistant 클릭 핸들러
+  const handleAssistantClick = () => {
+    const context = getContextMessage()
+    localStorage.setItem('chatContext', context)
+    window.location.href = '/user/login'
+  }
 
   // 멤버십 혜택 데이터
   const membershipData = {
@@ -122,7 +202,7 @@ export default function TworldPage() {
           cursor: pointer;
           box-shadow: 0 4px 20px rgba(54, 23, 206, 0.3);
           transition: all 0.3s ease;
-          z-index: 200;
+          z-index: 1003;
           text-decoration: none;
         }
         .chatbot-button:hover {
@@ -140,13 +220,63 @@ export default function TworldPage() {
           right: 15px;
           width: 150px;
           height: 150px;
-          z-index: 201;
+          z-index: 1001;
           pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .character-container.show {
+          opacity: 1;
+          pointer-events: auto;
         }
         .character-container model-viewer {
           width: 100%;
           height: 100%;
           display: block;
+          cursor: pointer;
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+          position: fixed;
+          bottom: 280px;
+          right: 40px;
+          max-width: 300px;
+          background: white;
+          padding: 16px 20px;
+          border-radius: 20px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+          z-index: 1002;
+          opacity: 0;
+          transform: translateY(10px);
+          transition: all 0.3s ease;
+          cursor: pointer;
+          border: 2px solid var(--t-blue);
+        }
+        .speech-bubble.show {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .speech-bubble::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          right: 40px;
+          width: 0;
+          height: 0;
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-top: 10px solid white;
+        }
+        .speech-bubble-text {
+          font-size: 14px;
+          line-height: 1.5;
+          color: var(--text-black);
+          font-weight: 500;
+        }
+        .speech-bubble:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(54, 23, 206, 0.2);
         }
 
         /* Modal Overlay */
@@ -793,8 +923,17 @@ export default function TworldPage() {
         <div className="icon">💬</div>
       </Link>
 
+      {/* Speech Bubble */}
+      {showAssistant && activeModal && (
+        <div className={`speech-bubble ${showAssistant ? 'show' : ''}`} onClick={handleAssistantClick}>
+          <div className="speech-bubble-text">
+            {getContextMessage()}
+          </div>
+        </div>
+      )}
+
       {/* 3D Character */}
-      <div className="character-container" suppressHydrationWarning>
+      <div className={`character-container ${showAssistant && activeModal ? 'show' : ''}`} suppressHydrationWarning onClick={handleAssistantClick}>
         <model-viewer
           src="/Tworld/models/model_bye.glb"
           camera-orbit="0deg 75deg 105%"

@@ -40,6 +40,24 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
     }
   }, [conversationId])
 
+  // Check for context from Tworld page
+  useEffect(() => {
+    const context = localStorage.getItem('chatContext')
+    if (context && messages.length === 0) {
+      // Add context as initial assistant message
+      const contextMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: context,
+        created_at: new Date().toISOString(),
+      }
+      setMessages([contextMessage])
+
+      // Clear context after using it
+      localStorage.removeItem('chatContext')
+    }
+  }, [conversationId])
+
   const createConversation = async () => {
     try {
       const response = await fetch('/api/chat/conversation', {
