@@ -4,15 +4,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
 
-// Declare model-viewer custom element for TypeScript
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': any
-    }
-  }
-}
-
 type ModalType = 'usage' | 'plan' | 'payment' | 'membership' | 'gift' | 'smishing' | 'usedphone' | 'search' | null
 
 export default function TworldPage() {
@@ -128,9 +119,9 @@ export default function TworldPage() {
   const nextBanner = () => setCurrentBanner(currentBanner === 2 ? 1 : 2)
   const prevBanner = () => setCurrentBanner(currentBanner === 1 ? 2 : 1)
 
-  // Context 메시지 매핑
-  const getContextMessage = (): string => {
-    const contextMap: Record<string, string> = {
+  // 말풍선에 표시할 메시지 (공손하고 긴 메시지)
+  const getSpeechBubbleMessage = (): string => {
+    const bubbleMap: Record<string, string> = {
       'usage': '실시간 사용량을 확인하고 계시네요! 데이터 요금제나 추가 옵션에 대해 궁금하신 점이 있으신가요?',
       'plan': '요금제 변경을 고려하고 계시군요! 고객님께 최적의 요금제를 추천해드릴 수 있어요.',
       'payment': '요금 납부 화면을 보고 계시네요. 납부 방법이나 요금 내역에 대해 도움이 필요하신가요?',
@@ -141,13 +132,29 @@ export default function TworldPage() {
       'search': '무엇을 찾고 계신가요? 제가 도와드릴 수 있어요!'
     }
 
-    return activeModal ? contextMap[activeModal] || '무엇을 도와드릴까요?' : '무엇을 도와드릴까요?'
+    return activeModal ? bubbleMap[activeModal] || '무엇을 도와드릴까요?' : '무엇을 도와드릴까요?'
+  }
+
+  // 챗봇에 보낼 메시지 (짧고 간단한 메시지)
+  const getChatMessage = (): string => {
+    const chatMap: Record<string, string> = {
+      'usage': '실시간 사용량 확인',
+      'plan': '요금제 변경 상담',
+      'payment': '요금 납부 안내',
+      'membership': '멤버십 혜택 안내',
+      'gift': '데이터 선물하기',
+      'smishing': '스미싱 대처 방법',
+      'usedphone': '중고폰 판매 문의',
+      'search': '검색 도움'
+    }
+
+    return activeModal ? chatMap[activeModal] || '상담 문의' : '상담 문의'
   }
 
   // Assistant 클릭 핸들러
   const handleAssistantClick = () => {
-    const context = getContextMessage()
-    localStorage.setItem('chatContext', context)
+    const chatMessage = getChatMessage()
+    localStorage.setItem('chatContext', chatMessage)
     // 로그인 상태면 챗봇으로, 아니면 로그인 페이지로
     window.location.href = isLoggedIn ? '/chat' : '/user/login'
   }
@@ -975,22 +982,28 @@ export default function TworldPage() {
       {showAssistant && activeModal && (
         <div className={`speech-bubble ${showAssistant ? 'show' : ''}`} onClick={handleAssistantClick}>
           <div className="speech-bubble-text">
-            {getContextMessage()}
+            {getSpeechBubbleMessage()}
           </div>
         </div>
       )}
 
       {/* 3D Character */}
-      <div className={`character-container ${showAssistant && activeModal ? 'show' : ''}`} suppressHydrationWarning onClick={handleAssistantClick}>
-        <model-viewer
-          src="/Tworld/models/model_bye.glb"
-          camera-orbit="0deg 75deg 105%"
-          animation-name="*"
-          autoplay
-          loop
-          suppressHydrationWarning>
-        </model-viewer>
-      </div>
+      <div
+        className={`character-container ${showAssistant && activeModal ? 'show' : ''}`}
+        suppressHydrationWarning
+        onClick={handleAssistantClick}
+        dangerouslySetInnerHTML={{
+          __html: `
+            <model-viewer
+              src="/Tworld/models/model_bye.glb"
+              camera-orbit="0deg 75deg 105%"
+              animation-name="*"
+              autoplay
+              loop>
+            </model-viewer>
+          `
+        }}
+      />
 
       {/* Modals */}
       {activeModal && (
