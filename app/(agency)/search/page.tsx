@@ -25,9 +25,11 @@ export default function SearchPage() {
   const [noticeSearchQuery, setNoticeSearchQuery] = useState('')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [recentCustomers, setRecentCustomers] = useState<any[]>([])
 
   useEffect(() => {
     checkAuth()
+    fetchRecentCustomers()
   }, [])
 
   const checkAuth = async () => {
@@ -52,6 +54,21 @@ export default function SearchPage() {
       setAuthChecked(true)
     } catch (error) {
       router.push('/auth/login?mode=agency&returnUrl=/search')
+    }
+  }
+
+  const fetchRecentCustomers = async () => {
+    try {
+      const response = await fetch('/api/agency/recent-customers?limit=5')
+      if (!response.ok) {
+        console.error('Failed to fetch recent customers')
+        return
+      }
+
+      const data = await response.json()
+      setRecentCustomers(data.customers || [])
+    } catch (error) {
+      console.error('Error fetching recent customers:', error)
     }
   }
 
@@ -114,15 +131,14 @@ export default function SearchPage() {
         return
       }
 
-      // 실제 검색 결과 사용, 더미 값으로 누락된 필드 채우기
+      // 검색 결과 처리
       const enrichedResults = data.customers.map((customer: any, index: number) => ({
         ...customer,
-        // 실제 데이터가 없으면 더미 값 사용
-        customer_birth: customer.customer_birth || '정보 없음',
-        plan_name: customer.plan_name || '정보 없음',
-        plan_price: customer.plan_price || 0,
-        bundle_type: customer.bundle_type || '없음',
-        device_model: customer.device_model || '정보 없음'
+        // 누락된 필드는 null 또는 기본값으로 처리
+        customer_birth: customer.customer_birth || null,
+        plan_name: customer.plan_name || null,
+        plan_price: customer.plan_price || null,
+        bundle_type: customer.bundle_type || null,
       }))
 
       setResults(enrichedResults)
@@ -142,14 +158,6 @@ export default function SearchPage() {
     { id: 'policy', icon: Folder, label: '정책 센터' },
     { id: 'notice', icon: Bell, label: '공지사항' },
     { id: 'settings', icon: Settings, label: '설정' },
-  ]
-
-  const recentCustomers = [
-    { name: '곽선호', phone: '5678', time: '10분 전' },
-    { name: '이원준', phone: '1234', time: '25분 전' },
-    { name: '최목원', phone: '9012', time: '1시간 전' },
-    { name: '이우석', phone: '3456', time: '2시간 전' },
-    { name: '송영진', phone: '7890', time: '3시간 전' },
   ]
 
   const notices = [
@@ -787,6 +795,17 @@ export default function SearchPage() {
           )}
         </div>
 
+        {/* 검색 결과 없음 - 검색 바로 아래에 표시 */}
+        {results.length === 0 && query && !isLoading && (
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl md:rounded-3xl shadow-lg border border-gray-200/50 p-8 md:p-12 text-center mb-4 md:mb-6">
+            <div className="w-16 md:w-20 h-16 md:h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+              <Search className="w-8 md:w-10 h-8 md:h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg md:text-2xl font-bold text-gray-900 mb-2">검색 결과가 없습니다</h3>
+            <p className="text-sm md:text-base text-gray-600">다른 검색어를 입력해보세요</p>
+          </div>
+        )}
+
         {/* 검색 결과 리스트 (테이블) */}
         {results.length > 0 && !showDetail && (
           <div
@@ -821,15 +840,15 @@ export default function SearchPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">생년월일</span>
-                      <span className="text-gray-900 font-medium">{customer.customer_birth || '-'}</span>
+                      <span className="text-gray-900 font-medium">{customer.customer_birth || '정보 없음'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">요금제</span>
-                      <span className="text-gray-900 font-medium">{customer.plan_name || '-'}</span>
+                      <span className="text-gray-900 font-medium">{customer.plan_name || '정보 없음'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">결합</span>
-                      <Badge className="bg-gradient-to-r from-[#FF7A00] to-[#FFA500] text-white text-xs">
+                      <Badge className={`text-xs ${customer.bundle_type ? 'bg-gradient-to-r from-[#FF7A00] to-[#FFA500]' : 'bg-gray-400'} text-white`}>
                         {customer.bundle_type || '없음'}
                       </Badge>
                     </div>
@@ -876,21 +895,21 @@ export default function SearchPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4 text-gray-700" style={{ fontFamily: 'Inter, Roboto' }}>
-                        {customer.customer_birth || '-'}
+                        {customer.customer_birth || '정보 없음'}
                       </td>
                       <td className="py-4 px-4 text-gray-700" style={{ fontFamily: 'Inter, Roboto' }}>
                         {customer.customer_phone || '-'}
                       </td>
                       <td className="py-4 px-4">
                         <div>
-                          <p className="text-gray-900 font-semibold text-sm">{customer.plan_name || '-'}</p>
+                          <p className="text-gray-900 font-semibold text-sm">{customer.plan_name || '정보 없음'}</p>
                           <p className="text-gray-500 text-xs" style={{ fontFamily: 'Inter, Roboto' }}>
-                            월 {customer.plan_price?.toLocaleString() || '0'}원
+                            월 {customer.plan_price ? customer.plan_price.toLocaleString() : '0'}원
                           </p>
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <Badge className="bg-gradient-to-r from-[#FF7A00] to-[#FFA500] text-white px-3 py-1">
+                        <Badge className={`px-3 py-1 ${customer.bundle_type ? 'bg-gradient-to-r from-[#FF7A00] to-[#FFA500]' : 'bg-gray-400'} text-white`}>
                           {customer.bundle_type || '없음'}
                         </Badge>
                       </td>
@@ -1059,17 +1078,6 @@ export default function SearchPage() {
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* 검색 결과 없음 */}
-        {results.length === 0 && query && !isLoading && (
-          <div className="backdrop-blur-sm bg-white/90 rounded-3xl shadow-lg border border-gray-200/50 p-16 text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Search className="w-12 h-12 text-gray-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">검색 결과가 없습니다</h3>
-            <p className="text-gray-600">다른 검색어를 입력해보세요</p>
           </div>
         )}
           </>
