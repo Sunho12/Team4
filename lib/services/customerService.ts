@@ -5,6 +5,11 @@ export interface CustomerSearchResult {
   customer_name: string | null
   customer_phone: string | null
   customer_birth?: string | null
+  plan_name?: string | null
+  plan_price?: number | null
+  bundle_type?: string | null
+  device_model?: string | null
+  device_remaining_months?: number | null
   created_at: string
   source: 'session' | 'profile'
   user_id?: string
@@ -40,6 +45,11 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
       full_name,
       phone_number,
       birthdate,
+      plan_name,
+      plan_price,
+      bundle_types,
+      device_model,
+      device_remaining_months,
       created_at
     `)
     .or(`full_name.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%`)
@@ -58,6 +68,11 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     customer_name: profile.full_name,
     customer_phone: profile.phone_number,
     customer_birth: profile.birthdate,
+    plan_name: profile.plan_name,
+    plan_price: profile.plan_price,
+    bundle_type: profile.bundle_types?.join(', ') || '없음',
+    device_model: profile.device_model,
+    device_remaining_months: profile.device_remaining_months,
     created_at: profile.created_at,
     source: 'profile' as const,
     user_id: profile.id,
@@ -72,32 +87,128 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
 export async function getCustomerDetail(customerId: string) {
   const supabase = await createServiceRoleClient()
 
-  // customerId is actually profiles.id, so we need to find customer_sessions by user_id
-  const { data: sessions, error: sessionError } = await supabase
+  // First, check if customerId is a session_id
+  const { data: directSession } = await supabase
     .from('customer_sessions')
-    .select(`
-      id,
-      customer_name,
-      customer_phone,
-      created_at,
-      conversations (
-        id,
-        status,
-        started_at,
-        ended_at,
-        conversation_summaries (
-          summary,
-          category,
-          keywords,
-          sentiment
-        )
-      )
-    `)
-    .eq('user_id', customerId)
-    .order('created_at', { ascending: false })
+    .select('id, user_id, customer_name, customer_phone, created_at')
+    .eq('id', customerId)
+    .single()
 
-  if (sessionError) {
-    throw new Error(`Failed to fetch customer detail: ${sessionError.message}`)
+  let userId: string | null = null
+  let sessions: any[] = []
+
+  if (directSession) {
+    // customerId is a session_id
+    console.log('customerId is a session_id:', directSession.id)
+    userId = directSession.user_id
+
+    if (userId) {
+      // Get all sessions for this user
+      const { data: userSessions, error: sessionError } = await supabase
+        .from('customer_sessions')
+        .select(`
+          id,
+          customer_name,
+          customer_phone,
+          created_at,
+          conversations (
+            id,
+            status,
+            started_at,
+            ended_at,
+            conversation_summaries (
+              summary,
+              category,
+              keywords,
+              sentiment
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+
+      if (sessionError) {
+        throw new Error(`Failed to fetch customer detail: ${sessionError.message}`)
+      }
+      sessions = userSessions || []
+    } else {
+      // No user_id, just use this session
+      const { data: singleSession, error: sessionError } = await supabase
+        .from('customer_sessions')
+        .select(`
+          id,
+          customer_name,
+          customer_phone,
+          created_at,
+          conversations (
+            id,
+            status,
+            started_at,
+            ended_at,
+            conversation_summaries (
+              summary,
+              category,
+              keywords,
+              sentiment
+            )
+          )
+        `)
+        .eq('id', directSession.id)
+        .single()
+
+      if (sessionError) {
+        throw new Error(`Failed to fetch customer detail: ${sessionError.message}`)
+      }
+      sessions = singleSession ? [singleSession] : []
+    }
+  } else {
+    // customerId might be a user_id (profile id)
+    console.log('customerId might be a user_id')
+    userId = customerId
+
+    const { data: userSessions, error: sessionError } = await supabase
+      .from('customer_sessions')
+      .select(`
+        id,
+        customer_name,
+        customer_phone,
+        created_at,
+        conversations (
+          id,
+          status,
+          started_at,
+          ended_at,
+          conversation_summaries (
+            summary,
+            category,
+            keywords,
+            sentiment
+          )
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (sessionError) {
+      throw new Error(`Failed to fetch customer detail: ${sessionError.message}`)
+    }
+    sessions = userSessions || []
+  }
+
+  // Get profile data (including birthdate, plan, device info) if we have a userId
+  let profile = null
+  if (userId) {
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('birthdate, full_name, plan_name, plan_price, bundle_types, device_model, device_remaining_months')
+      .eq('id', userId)
+      .single()
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError)
+    } else {
+      profile = profileData
+    }
   }
 
   // Use the first (most recent) session or create a default one
@@ -107,20 +218,37 @@ export async function getCustomerDetail(customerId: string) {
     throw new Error('No customer session found for this user')
   }
 
+  // Add profile data to session data
+  const sessionWithProfile = {
+    ...session,
+    birthdate: profile?.birthdate || null,
+    plan_name: profile?.plan_name || null,
+    plan_price: profile?.plan_price || null,
+    bundle_types: profile?.bundle_types || [],
+    device_model: profile?.device_model || null,
+    device_remaining_months: profile?.device_remaining_months || null,
+  }
+
   // Get predictions for all sessions of this customer
   const sessionIds = sessions?.map(s => s.id) || []
-  const { data: predictions, error: predictionsError } = await supabase
-    .from('purchase_predictions')
-    .select('*')
-    .in('session_id', sessionIds)
-    .order('created_at', { ascending: false })
+  let predictions: any[] = []
 
-  if (predictionsError) {
-    console.error('Error fetching predictions:', predictionsError)
+  if (sessionIds.length > 0) {
+    const { data: predictionsData, error: predictionsError } = await supabase
+      .from('purchase_predictions')
+      .select('*')
+      .in('session_id', sessionIds)
+      .order('created_at', { ascending: false })
+
+    if (predictionsError) {
+      console.error('Error fetching predictions:', predictionsError)
+    } else {
+      predictions = predictionsData || []
+    }
   }
 
   return {
-    session,
-    predictions: predictions || [],
+    session: sessionWithProfile,
+    predictions,
   }
 }
