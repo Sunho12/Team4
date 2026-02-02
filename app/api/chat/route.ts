@@ -18,17 +18,18 @@ function shouldSearchStores(recentMessages: any[], currentMessage: string): bool
 
   // 챗봇이 대리점 추천이나 위치 질문을 했는지 확인
   const botAskedForLocation =
-    lastAssistantMessage.includes('대리점') && (
+    (lastAssistantMessage.includes('대리점') && (
       lastAssistantMessage.includes('추천') ||
       lastAssistantMessage.includes('안내') ||
       lastAssistantMessage.includes('찾아') ||
       lastAssistantMessage.includes('방문')
-    ) && (
-      lastAssistantMessage.includes('?') ||
+    )) ||
+    (lastAssistantMessage.includes('?') && (
+      lastAssistantMessage.includes('어느 지역') ||
       lastAssistantMessage.includes('어디') ||
-      lastAssistantMessage.includes('지역') ||
+      lastAssistantMessage.includes('지역이신가요') ||
       lastAssistantMessage.includes('위치')
-    )
+    ))
 
   // 사용자가 거부 의사를 표현했는지 확인
   const isRejection =

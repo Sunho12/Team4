@@ -33,171 +33,179 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
   const [sdkError, setSdkError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isOpen || stores.length === 0 || !mapRef.current) return
+    if (!isOpen || stores.length === 0 || !mapRef.current) {
+      console.debug('[StoreModal] Skipping: isOpen=', isOpen, 'stores.length=', stores.length, 'mapRef.current=', !!mapRef.current)
+      return
+    }
+
+    console.log('[StoreModal] ===== Starting Kakao Map Load =====')
+    console.log('[StoreModal] Stores count:', stores.length)
+    console.log('[StoreModal] First store:', stores[0])
 
     setSdkError(null)
     setSdkLoaded(false)
 
-    const loadKakao = async () => {
-      let timeoutId: any = null
+    const loadAndInitMap = () => {
+      const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY
+      console.log('[StoreModal] API Key exists:', !!key)
 
-      try {
-        if (typeof window === 'undefined') return
+      if (!key) {
+        console.error('[StoreModal] No API key')
+        setSdkError('카카오 지도 API 키가 설정되지 않았습니다.')
+        return
+      }
 
-        console.debug('[StoreModal] loadKakao: start')
+      // 1. SDK가 이미 완전히 로드되어 있는 경우
+      if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+        console.log('[StoreModal] ✅ Kakao SDK already fully loaded')
+        setSdkLoaded(true)
+        initializeMap()
+        return
+      }
 
-        // 이미 로드되어 있으면 바로 초기화
-        if (window.kakao && window.kakao.maps) {
-          console.debug('[StoreModal] Kakao SDK already present')
-          window.kakao.maps.load(() => {
-            console.debug('[StoreModal] Kakao maps.load() callback executed')
+      // 2. 스크립트는 있지만 maps가 아직 준비 안 된 경우
+      if (window.kakao && !window.kakao.maps) {
+        console.log('[StoreModal] ⏳ Kakao loaded but maps not ready, waiting...')
+        let attempts = 0
+        const checkInterval = setInterval(() => {
+          attempts++
+          console.log(`[StoreModal] Checking maps API... attempt ${attempts}`)
+          if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+            console.log('[StoreModal] ✅ Kakao maps now ready')
+            clearInterval(checkInterval)
             setSdkLoaded(true)
             initializeMap()
-          })
-          return
-        }
-
-        // 중복 스크립트 추가 방지
-        const existing = document.getElementById('kakao-sdk') as HTMLScriptElement | null
-        if (existing) {
-          console.debug('[StoreModal] Kakao script tag already exists; attaching listeners')
-          // If the script already exists, attach handlers and set a timeout fallback
-          const onLoadHandler = () => {
-            console.debug('[StoreModal] existing script loaded')
-            clearTimeout(timeoutId)
-            if (window.kakao && window.kakao.maps) {
-              window.kakao.maps.load(() => {
-                console.debug('[StoreModal] Kakao maps.load() callback executed (existing script)')
-                setSdkLoaded(true)
-                initializeMap()
-              })
-            } else {
-              setSdkError('카카오 지도 초기화에 실패했습니다.')
-            }
           }
+          if (attempts > 50) {
+            clearInterval(checkInterval)
+            setSdkError('카카오 지도 로딩 시간 초과')
+          }
+        }, 200)
+        return
+      }
 
-          existing.addEventListener('load', onLoadHandler)
-          existing.addEventListener('error', () => {
-            clearTimeout(timeoutId)
-            setSdkError('카카오 지도 로드 실패')
-          })
+      // 3. 스크립트 태그가 이미 있는 경우 제거하고 재생성
+      const existing = document.getElementById('kakao-sdk')
+      if (existing) {
+        console.log('[StoreModal] Removing existing script')
+        existing.remove()
+      }
 
-          timeoutId = setTimeout(() => {
-            console.warn('[StoreModal] Kakao SDK load timeout (existing)')
-            setSdkError('지도 로드 타임아웃')
-          }, 10000)
+      // 4. 새 스크립트 생성 (autoload=true로 자동 초기화)
+      console.log('[StoreModal] Creating new script tag with autoload=true')
+      const script = document.createElement('script')
+      script.id = 'kakao-sdk'
+      script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=true`
+      script.async = false
 
-          return
-        }
-
-        const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY
-        console.debug('[StoreModal] Kakao key from env:', key)
-        if (!key) {
-          console.warn('NEXT_PUBLIC_KAKAO_JS_KEY is not set')
-          setSdkError('지도 키가 구성되어 있지 않습니다.')
-          return
-        }
-
-        const script = document.createElement('script')
-        script.id = 'kakao-sdk'
-        script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=false&libraries=services`
-        script.async = true
-        script.onload = () => {
-          console.debug('[StoreModal] Kakao script onload')
-          clearTimeout(timeoutId)
-          if (window.kakao && window.kakao.maps) {
-            window.kakao.maps.load(() => {
-              console.debug('[StoreModal] Kakao maps.load() callback executed (new script)')
+      script.onload = () => {
+        console.log('[StoreModal] ✅ Script loaded with autoload=true')
+        // autoload=true이므로 바로 사용 가능
+        if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+          console.log('[StoreModal] ✅ Maps API ready, initializing map')
+          setSdkLoaded(true)
+          setTimeout(() => initializeMap(), 100)
+        } else {
+          // 짧은 대기 후 재시도
+          console.log('[StoreModal] ⏳ Waiting for maps API...')
+          setTimeout(() => {
+            if (window.kakao && window.kakao.maps && window.kakao.maps.LatLng) {
+              console.log('[StoreModal] ✅ Maps API ready after wait')
               setSdkLoaded(true)
               initializeMap()
-            })
-          } else {
-            setSdkError('카카오 지도 초기화에 실패했습니다.')
-          }
+            } else {
+              console.error('[StoreModal] ❌ Maps API still not ready')
+              setSdkError('카카오 지도 API 초기화 실패')
+            }
+          }, 500)
         }
-        script.onerror = () => {
-          console.error('[StoreModal] Kakao script onerror')
-          clearTimeout(timeoutId)
-          setSdkError('카카오 지도 로드 실패')
-        }
-
-        // Fallback timeout
-        timeoutId = setTimeout(() => {
-          console.warn('[StoreModal] Kakao SDK load timeout')
-          setSdkError('지도 로드 타임아웃')
-        }, 10000)
-
-        document.head.appendChild(script)
-      } catch (err) {
-        console.error('Error loading Kakao SDK:', err)
-        setSdkError('지도 로드 중 오류가 발생했습니다.')
       }
+
+      script.onerror = (e) => {
+        console.error('[StoreModal] ❌ Script load error:', e)
+        setSdkError('카카오 지도 스크립트 로드 실패')
+      }
+
+      document.head.appendChild(script)
+      console.log('[StoreModal] Script tag added to document')
     }
 
-    loadKakao()
+    loadAndInitMap()
 
     return () => {
-      // Cleanup markers and map when modal closes
+      // Cleanup
+      console.log('[StoreModal] Cleanup')
       try {
-        markersRef.current.forEach(m => m.marker.setMap(null))
+        markersRef.current.forEach(m => m.marker?.setMap(null))
         markersRef.current = []
-        if (map) {
-          // Kakao maps doesn't provide a destroy method; detach by nulling
-          // @ts-ignore
-          map.setMap && map.setMap(null)
-          setMap(null)
-        }
       } catch (e) {
-        // ignore cleanup errors
+        console.error('[StoreModal] Cleanup error:', e)
       }
     }
   }, [isOpen, stores])
 
   const initializeMap = () => {
-    console.debug('[StoreModal] initializeMap called, stores:', stores.length)
+    console.log('[StoreModal] ===== initializeMap START =====')
+    console.log('[StoreModal] mapRef.current:', !!mapRef.current)
+    console.log('[StoreModal] stores.length:', stores.length)
+    console.log('[StoreModal] window.kakao:', !!window.kakao)
+    console.log('[StoreModal] window.kakao.maps:', !!(window.kakao && window.kakao.maps))
+    console.log('[StoreModal] window.kakao.maps.LatLng:', !!(window.kakao && window.kakao.maps && window.kakao.maps.LatLng))
+
     if (!mapRef.current || stores.length === 0) {
-      console.warn('[StoreModal] Cannot initialize map: mapRef or stores empty')
+      console.error('[StoreModal] ❌ Cannot initialize: mapRef or stores empty')
       return
     }
 
-    if (!window.kakao || !window.kakao.maps) {
-      console.error('[StoreModal] Kakao maps SDK not loaded')
+    if (!window.kakao || !window.kakao.maps || !window.kakao.maps.LatLng) {
+      console.error('[StoreModal] ❌ Kakao maps SDK not ready')
       setSdkError('카카오 지도 SDK를 찾을 수 없습니다.')
       return
     }
 
-    // 첫 번째 대리점 위치를 중심으로 설정 (안전한 파싱)
+    // 첫 번째 대리점 위치를 중심으로 설정
     const firstStore = stores[0]
+    console.log('[StoreModal] First store data:', firstStore)
+
     const centerLat = parseFloat(firstStore.mapy)
     const centerLng = parseFloat(firstStore.mapx)
+    console.log('[StoreModal] Parsed coordinates:', { centerLat, centerLng })
 
     // 좌표 유효성 검사 (한국 좌표 범위 확인)
     const isValidKoreanCoordinate =
       isFinite(centerLat) && isFinite(centerLng) &&
-      centerLat >= 33 && centerLat <= 43 && // 한국 위도 범위
-      centerLng >= 124 && centerLng <= 132  // 한국 경도 범위
+      centerLat >= 33 && centerLat <= 43 &&
+      centerLng >= 124 && centerLng <= 132
 
     if (!isValidKoreanCoordinate) {
-      console.error('[StoreModal] Invalid coordinates:', { centerLat, centerLng, store: firstStore })
+      console.error('[StoreModal] ❌ Invalid coordinates:', { centerLat, centerLng })
       setSdkError('유효하지 않은 좌표입니다.')
       return
     }
 
-    console.debug('[StoreModal] Using coordinates:', { centerLat, centerLng })
+    console.log('[StoreModal] ✅ Coordinates valid:', { centerLat, centerLng })
 
     const container = mapRef.current
-    const options = {
-      center: new window.kakao.maps.LatLng(centerLat, centerLng),
-      level: 5, // 확대 레벨
-    }
+    console.log('[StoreModal] Container element:', container)
 
     try {
+      const center = new window.kakao.maps.LatLng(centerLat, centerLng)
+      console.log('[StoreModal] ✅ LatLng created:', center)
+
+      const options = {
+        center: center,
+        level: 5,
+      }
+      console.log('[StoreModal] Map options:', options)
+
       const kakaoMap = new window.kakao.maps.Map(container, options)
+      console.log('[StoreModal] ✅ Map object created:', kakaoMap)
+
       setMap(kakaoMap)
-      console.debug('[StoreModal] kakaoMap initialized successfully at', centerLat, centerLng)
+      console.log('[StoreModal] ✅✅✅ Map initialized successfully! =====')
     } catch (error) {
-      console.error('[StoreModal] Error creating map:', error)
-      setSdkError('지도 생성 중 오류가 발생했습니다.')
+      console.error('[StoreModal] ❌ Error creating map:', error)
+      setSdkError(`지도 생성 실패: ${error}`)
       return
     }
 
