@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ChatInterface } from '@/components/chat/ChatInterface'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function ChatPage() {
   const router = useRouter()
@@ -96,7 +97,16 @@ export default function ChatPage() {
     <main className="flex min-h-screen flex-col">
       {/* Header */}
       <div className="border-b p-4 flex items-center justify-between bg-white shadow-sm">
-        <h1 className="text-xl font-bold text-primary">T-world 챗봇</h1>
+        <div className="flex items-center gap-2">
+          <Image
+            src="/Tworld/T.png"
+            alt="T world"
+            width={32}
+            height={32}
+            priority
+          />
+          <h1 className="text-xl font-bold text-primary">챗봇</h1>
+        </div>
         <div className="flex items-center gap-3">
           <Link href="/customer/history">
             <Button variant="outline" size="sm">내 상담 이력</Button>
