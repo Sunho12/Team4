@@ -52,11 +52,11 @@ function DocumentCard({ documents, message }: { documents: string[], message: st
         className="rounded-2xl p-4 backdrop-blur-[10px] border-2"
         style={{
           background: 'rgba(255, 255, 255, 0.9)',
-          borderImage: 'linear-gradient(135deg, #0066FF, #00D4FF) 1'
+          borderColor: '#6B5FE5'
         }}
       >
         <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#0066FF] to-[#00D4FF] rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#6B5FE5' }}>
             <FileText className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-sm" style={{ fontFamily: "'SK Mobius', sans-serif", color: '#222' }}>
@@ -70,7 +70,7 @@ function DocumentCard({ documents, message }: { documents: string[], message: st
               key={idx}
               className="flex items-start gap-2 p-2 rounded-lg hover:bg-white/50 transition-colors"
             >
-              <CheckCircle2 className="w-5 h-5 text-[#0066FF] flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-5 h-5 text-[#6B5FE5] flex-shrink-0 mt-0.5" />
               <span className="text-sm" style={{ fontFamily: "'SK Mobius', sans-serif", color: '#222' }}>
                 {doc}
               </span>
@@ -117,10 +117,13 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
               className={cn(
                 'max-w-[80%] rounded-2xl px-4 py-3',
                 message.role === 'user'
-                  ? 'bg-gradient-to-r from-[#0066FF] to-[#00D4FF] text-white shadow-lg'
+                  ? 'text-white shadow-lg'
                   : 'bg-white shadow-md border border-gray-200'
               )}
-              style={{ fontFamily: "'SK Mobius', sans-serif" }}
+              style={{
+                fontFamily: "'SK Mobius', sans-serif",
+                backgroundColor: message.role === 'user' ? '#6B5FE5' : undefined
+              }}
             >
               {isDocument && documents.length > 0 ? (
                 <DocumentCard documents={documents} message={message.content} />
@@ -138,9 +141,9 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         <div className="flex justify-start">
           <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-white shadow-md border border-gray-200">
             <div className="flex space-x-2">
-              <div className="w-2 h-2 bg-gradient-to-r from-[#EA002C] to-[#FF7A00] rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-gradient-to-r from-[#EA002C] to-[#FF7A00] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-              <div className="w-2 h-2 bg-gradient-to-r from-[#EA002C] to-[#FF7A00] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#6B5FE5' }}></div>
+              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#6B5FE5', animationDelay: '0.1s' }}></div>
+              <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#6B5FE5', animationDelay: '0.2s' }}></div>
             </div>
           </div>
         </div>
