@@ -5,6 +5,9 @@ export interface CustomerSearchResult {
   customer_name: string | null
   customer_phone: string | null
   customer_birth?: string | null
+  plan_name?: string | null
+  plan_price?: number | null
+  bundle_type?: string | null
   created_at: string
   source: 'session' | 'profile'
   user_id?: string
@@ -32,7 +35,7 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     return []
   }
 
-  // profiles 테이블에서만 검색 (회원가입한 고객)
+  // profiles 테이블에서 검색하고 customer_demographics, family_members 조인
   const { data: profileResults, error: profileError } = await supabase
     .from('profiles')
     .select(`
@@ -40,7 +43,14 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
       full_name,
       phone_number,
       birthdate,
-      created_at
+      created_at,
+      customer_demographics (
+        current_plan_type,
+        current_plan_price
+      ),
+      family_members (
+        id
+      )
     `)
     .or(`full_name.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%`)
     .eq('role', 'customer')
@@ -53,20 +63,116 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
   }
 
   // profiles 결과를 CustomerSearchResult 형식으로 변환
-  const results: CustomerSearchResult[] = (profileResults || []).map(profile => ({
-    id: profile.id,
-    customer_name: profile.full_name,
-    customer_phone: profile.phone_number,
-    customer_birth: profile.birthdate,
-    created_at: profile.created_at,
-    source: 'profile' as const,
-    user_id: profile.id,
-    conversations: []
-  }))
+  const results: CustomerSearchResult[] = (profileResults || []).map((profile: any) => {
+    const demographics = profile.customer_demographics?.[0]
+    const hasFamilyMembers = profile.family_members && profile.family_members.length > 0
+
+    return {
+      id: profile.id,
+      customer_name: profile.full_name,
+      customer_phone: profile.phone_number,
+      customer_birth: profile.birthdate,
+      plan_name: demographics?.current_plan_type || null,
+      plan_price: demographics?.current_plan_price || null,
+      bundle_type: hasFamilyMembers ? '결합' : '없음',
+      created_at: profile.created_at,
+      source: 'profile' as const,
+      user_id: profile.id,
+      conversations: []
+    }
+  })
 
   console.log(`✅ Found ${results.length} customers from profiles`)
 
   return results
+}
+
+export interface RecentCustomer {
+  id: string
+  name: string
+  phone: string
+  time: string
+  lastConversationAt: string
+}
+
+export async function getRecentCustomers(limit: number = 5): Promise<RecentCustomer[]> {
+  const supabase = await createServiceRoleClient()
+
+  console.log('🕐 Fetching recent customers...')
+
+  // 1. 최근 종료된 대화 조회
+  const { data: conversations, error: convError } = await supabase
+    .from('conversations')
+    .select(`
+      id,
+      session_id,
+      ended_at,
+      customer_sessions (
+        user_id,
+        customer_name,
+        customer_phone
+      )
+    `)
+    .not('ended_at', 'is', null)
+    .order('ended_at', { ascending: false })
+    .limit(50) // 중복 제거를 위해 더 많이 가져옴
+
+  if (convError) {
+    console.error('❌ Error fetching recent conversations:', convError)
+    return []
+  }
+
+  if (!conversations || conversations.length === 0) {
+    console.log('❌ No recent conversations found')
+    return []
+  }
+
+  // 2. user_id 기준으로 중복 제거 (가장 최근 대화만)
+  const seenUserIds = new Set<string>()
+  const uniqueCustomers: RecentCustomer[] = []
+
+  for (const conv of conversations) {
+    const session = (conv.customer_sessions as any)
+    if (!session || !session.user_id) continue
+
+    if (seenUserIds.has(session.user_id)) continue
+    seenUserIds.add(session.user_id)
+
+    // 시간 차이 계산
+    const endedAt = new Date(conv.ended_at!)
+    const now = new Date()
+    const diffMs = now.getTime() - endedAt.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+
+    let timeText: string
+    if (diffMins < 60) {
+      timeText = `${diffMins}분 전`
+    } else if (diffMins < 1440) {
+      timeText = `${Math.floor(diffMins / 60)}시간 전`
+    } else {
+      timeText = `${Math.floor(diffMins / 1440)}일 전`
+    }
+
+    // 3. profiles에서 정확한 이름 가져오기
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, full_name, phone_number')
+      .eq('id', session.user_id)
+      .single()
+
+    uniqueCustomers.push({
+      id: session.user_id,
+      name: profile?.full_name || session.customer_name || '알 수 없음',
+      phone: profile?.phone_number || session.customer_phone || '',
+      time: timeText,
+      lastConversationAt: conv.ended_at!
+    })
+
+    if (uniqueCustomers.length >= limit) break
+  }
+
+  console.log(`✅ Found ${uniqueCustomers.length} recent customers`)
+  return uniqueCustomers
 }
 
 export async function getCustomerDetail(customerId: string) {
