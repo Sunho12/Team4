@@ -53,12 +53,26 @@ export async function signUp(data: SignUpData): Promise<void> {
 export async function signIn(name: string, password: string): Promise<UserData> {
   const supabase = await createServiceRoleClient()
 
+  // 디버깅: 입력값 로그
+  console.log('로그인 시도:', { name, password })
+
+  // 먼저 이름으로만 검색하여 계정 존재 확인
+  const { data: userByName } = await supabase
+    .from('profiles')
+    .select('id, full_name, phone_number, role, username')
+    .eq('full_name', name)
+    .single()
+
+  console.log('이름으로 검색한 결과:', userByName)
+
   const { data: user, error } = await supabase
     .from('profiles')
     .select('id, full_name, phone_number, role, username, password')
     .eq('username', name) // Username is name
     .eq('password', password) // Check password
     .single()
+
+  console.log('이름+비밀번호로 검색한 결과:', { user, error })
 
   if (error || !user) {
     throw new Error('이름 또는 비밀번호가 올바르지 않습니다')
