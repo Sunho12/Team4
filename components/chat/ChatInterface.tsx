@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
@@ -33,6 +33,7 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   const [isLoading, setIsLoading] = useState(false)
   const [summary, setSummary] = useState<any>(null)
   const [predictions, setPredictions] = useState<any>(null)
+  const initializedRef = useRef(false)
 
   // 대리점 모달 상태
   const [isStoreModalOpen, setIsStoreModalOpen] = useState(false)
@@ -46,19 +47,6 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
       loadMessages()
     }
   }, [conversationId])
-
-  useEffect(() => {
-    // Add welcome message when conversation starts with no messages
-    if (conversationId && messages.length === 0 && !isLoading) {
-      const welcomeMessage: Message = {
-        id: 'welcome-' + crypto.randomUUID(),
-        role: 'assistant',
-        content: '안녕하세요! T-world 상담 챗봇입니다.\n어떤 업무를 도와드릴까요?',
-        created_at: new Date().toISOString(),
-      }
-      setMessages([welcomeMessage])
-    }
-  }, [conversationId, messages.length, isLoading])
 
   const createConversation = async () => {
     try {
@@ -84,7 +72,32 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
       const response = await fetch(`/api/chat/messages?conversationId=${conversationId}`)
       if (response.ok) {
         const data = await response.json()
-        setMessages(data.messages)
+
+        // 빈 대화면 welcome 메시지 추가
+        if (data.messages.length === 0) {
+          const welcomeMessage: Message = {
+            id: 'welcome-' + crypto.randomUUID(),
+            role: 'assistant',
+            content: '안녕하세요! T-world 상담 챗봇입니다.\n어떤 업무를 도와드릴까요?',
+            created_at: new Date().toISOString(),
+          }
+          setMessages([welcomeMessage])
+
+          // Check for auto-send context
+          if (!initializedRef.current) {
+            initializedRef.current = true
+            const context = localStorage.getItem('chatContext')
+            if (context) {
+              localStorage.removeItem('chatContext')
+              setTimeout(() => {
+                sendMessage(context)
+              }, 500)
+            }
+          }
+        } else {
+          // 기존 메시지가 있으면 그대로 표시
+          setMessages(data.messages)
+        }
       }
     } catch (error) {
       console.error('Failed to load messages:', error)

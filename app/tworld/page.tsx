@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 type ModalType = 'usage' | 'plan' | 'payment' | 'membership' | 'gift' | 'smishing' | 'usedphone' | 'search' | null
 
@@ -10,6 +10,10 @@ export default function TworldPage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<'eat' | 'buy' | 'play'>('eat')
   const [currentBanner, setCurrentBanner] = useState(1)
+  const [showAssistant, setShowAssistant] = useState(false)
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userName, setUserName] = useState('')
 
   useEffect(() => {
     // model-viewer 스크립트 동적 로드
@@ -18,6 +22,9 @@ export default function TworldPage() {
     script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js'
     document.head.appendChild(script)
 
+    // 로그인 상태 확인
+    checkAuth()
+
     return () => {
       if (script.parentNode) {
         script.parentNode.removeChild(script)
@@ -25,12 +32,132 @@ export default function TworldPage() {
     }
   }, [])
 
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      if (response.ok) {
+        const data = await response.json()
+        setIsLoggedIn(true)
+        setUserName(data.user.name)
+      }
+    } catch (error) {
+      // 로그인하지 않은 상태
+      setIsLoggedIn(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/signout', { method: 'POST' })
+      setIsLoggedIn(false)
+      setUserName('')
+      window.location.reload()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
+
+  // Idle timer logic
+  useEffect(() => {
+    console.log('[DEBUG] Modal changed:', activeModal)
+
+    // 모달이 없으면 assistant 숨김
+    if (!activeModal) {
+      console.log('[DEBUG] No modal, hiding assistant')
+      setShowAssistant(false)
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+        idleTimerRef.current = null
+      }
+      return
+    }
+
+    console.log('[DEBUG] Modal opened, starting timer')
+
+    const resetTimer = () => {
+      console.log('[DEBUG] Timer reset')
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+      }
+
+      idleTimerRef.current = setTimeout(() => {
+        console.log('[DEBUG] 5 seconds passed, showing assistant')
+        setShowAssistant(true)
+      }, 5000) // 5초
+    }
+
+    // 초기 타이머 시작
+    resetTimer()
+
+    // 클릭 이벤트만 감지 (마우스 움직임, 스크롤은 무시)
+    const handleClick = () => {
+      console.log('[DEBUG] Click detected, resetting timer')
+      resetTimer()
+    }
+
+    window.addEventListener('click', handleClick)
+
+    return () => {
+      console.log('[DEBUG] Cleanup')
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+        idleTimerRef.current = null
+      }
+      window.removeEventListener('click', handleClick)
+    }
+  }, [activeModal])
+
+  // showAssistant 변경 감지
+  useEffect(() => {
+    console.log('[DEBUG] showAssistant changed to:', showAssistant)
+  }, [showAssistant])
+
   // 모달 닫기
   const closeModal = () => setActiveModal(null)
 
   // 배너 전환
   const nextBanner = () => setCurrentBanner(currentBanner === 2 ? 1 : 2)
   const prevBanner = () => setCurrentBanner(currentBanner === 1 ? 2 : 1)
+
+  // 말풍선에 표시할 메시지 (공손하고 긴 메시지)
+  const getSpeechBubbleMessage = (): string => {
+    const bubbleMap: Record<string, string> = {
+      'usage': '실시간 사용량을 확인하고 계시네요! 데이터 요금제나 추가 옵션에 대해 궁금하신 점이 있으신가요?',
+      'plan': '요금제 변경을 고려하고 계시군요! 고객님께 최적의 요금제를 추천해드릴 수 있어요.',
+      'payment': '요금 납부 화면을 보고 계시네요. 납부 방법이나 요금 내역에 대해 도움이 필요하신가요?',
+      'membership': '멤버십 혜택을 확인하고 계시네요! 더 많은 혜택 정보를 원하시나요?',
+      'gift': '데이터 선물 기능을 살펴보고 계시군요! 선물 방법에 대해 도움드릴까요?',
+      'smishing': '스미싱 대처 방법을 확인하고 계시네요. 추가로 보안 관련 문의사항이 있으신가요?',
+      'usedphone': '중고폰 판매를 고려하고 계시군요! 판매 절차나 예상 가격에 대해 궁금하신 점이 있으신가요?',
+      'search': '무엇을 찾고 계신가요? 제가 도와드릴 수 있어요!'
+    }
+
+    return activeModal ? bubbleMap[activeModal] || '무엇을 도와드릴까요?' : '무엇을 도와드릴까요?'
+  }
+
+  // 챗봇에 보낼 메시지 (짧고 간단한 메시지)
+  const getChatMessage = (): string => {
+    const chatMap: Record<string, string> = {
+      'usage': '실시간 사용량 확인',
+      'plan': '요금제 변경 상담',
+      'payment': '요금 납부 안내',
+      'membership': '멤버십 혜택 안내',
+      'gift': '데이터 선물하기',
+      'smishing': '스미싱 대처 방법',
+      'usedphone': '중고폰 판매 문의',
+      'search': '검색 도움'
+    }
+
+    return activeModal ? chatMap[activeModal] || '상담 문의' : '상담 문의'
+  }
+
+  // Assistant 클릭 핸들러
+  const handleAssistantClick = () => {
+    const chatMessage = getChatMessage()
+    localStorage.setItem('chatContext', chatMessage)
+    // 로그인 상태면 챗봇으로, 아니면 로그인 페이지로
+    window.location.href = isLoggedIn ? '/chat' : '/user/login'
+  }
 
   // 멤버십 혜택 데이터
   const membershipData = {
@@ -122,7 +249,7 @@ export default function TworldPage() {
           cursor: pointer;
           box-shadow: 0 4px 20px rgba(54, 23, 206, 0.3);
           transition: all 0.3s ease;
-          z-index: 200;
+          z-index: 1003;
           text-decoration: none;
         }
         .chatbot-button:hover {
@@ -140,13 +267,63 @@ export default function TworldPage() {
           right: 15px;
           width: 150px;
           height: 150px;
-          z-index: 201;
+          z-index: 1001;
           pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .character-container.show {
+          opacity: 1;
+          pointer-events: auto;
         }
         .character-container model-viewer {
           width: 100%;
           height: 100%;
           display: block;
+          cursor: pointer;
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+          position: fixed;
+          bottom: 280px;
+          right: 40px;
+          max-width: 300px;
+          background: white;
+          padding: 16px 20px;
+          border-radius: 20px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+          z-index: 1002;
+          opacity: 0;
+          transform: translateY(10px);
+          transition: all 0.3s ease;
+          cursor: pointer;
+          border: 2px solid var(--t-blue);
+        }
+        .speech-bubble.show {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .speech-bubble::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          right: 40px;
+          width: 0;
+          height: 0;
+          border-left: 10px solid transparent;
+          border-right: 10px solid transparent;
+          border-top: 10px solid white;
+        }
+        .speech-bubble-text {
+          font-size: 14px;
+          line-height: 1.5;
+          color: var(--text-black);
+          font-weight: 500;
+        }
+        .speech-bubble:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 32px rgba(54, 23, 206, 0.2);
         }
 
         /* Modal Overlay */
@@ -673,6 +850,175 @@ export default function TworldPage() {
           border-radius: 5px;
           background: white;
         }
+
+        /* Mobile Responsive - iPhone Pro 기준 (393px) */
+        @media (max-width: 768px) {
+          /* Header */
+          .tworld-header { height: 60px; }
+          .header-inner { padding: 0 16px; }
+          .logo img { width: 32px; height: 32px; }
+          .nav { display: none; } /* 모바일에서 네비게이션 숨김 */
+          .user-menu { font-size: 12px; }
+
+          /* Container */
+          .container { padding: 0 16px; margin: 24px auto; }
+          .section-header h2 { font-size: 20px; }
+          .section-header .more { font-size: 13px; }
+
+          /* Quick Menu Grid - 4열에서 2열로 */
+          .quick-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 32px;
+          }
+          .quick-card {
+            padding: 24px 16px;
+            min-height: 100px;
+            border-radius: 16px;
+          }
+          .quick-card span { font-size: 15px; }
+
+          /* Banner */
+          .banner {
+            padding: 28px 24px;
+            border-radius: 20px;
+            margin-bottom: 32px;
+          }
+          .banner h3 { font-size: 22px; margin-bottom: 10px; }
+          .banner p { font-size: 14px; }
+          .banner .btn-white {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 14px;
+          }
+
+          /* Main Banner */
+          .main-banner-container {
+            margin: 24px auto 24px;
+            padding: 0 16px;
+          }
+          .main-banner-wrapper { height: 200px; border-radius: 16px; }
+          .banner-arrow {
+            width: 36px;
+            height: 36px;
+            font-size: 20px;
+          }
+          .banner-arrow.left { left: 12px; }
+          .banner-arrow.right { right: 12px; }
+
+          /* Info Grid - 2열에서 1열로 */
+          .info-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+          }
+          .info-card {
+            padding: 20px;
+            border-radius: 16px;
+          }
+          .info-card .img-placeholder {
+            width: 64px;
+            height: 64px;
+            font-size: 28px;
+          }
+          .info-text .title { font-size: 16px; }
+          .info-text .desc { font-size: 13px; }
+
+          /* Footer */
+          .tworld-footer { padding: 40px 0; margin-top: 60px; }
+          .footer-inner { padding: 0 16px; font-size: 11px; line-height: 1.6; }
+          .footer-logo { font-size: 18px; margin-bottom: 16px; }
+
+          /* Chatbot Button */
+          .chatbot-button {
+            width: 60px;
+            height: 60px;
+            bottom: 20px;
+            right: 20px;
+          }
+          .chatbot-button .icon { font-size: 28px; }
+
+          /* 3D Character */
+          .character-container {
+            width: 120px;
+            height: 120px;
+            bottom: 90px;
+            right: 10px;
+          }
+
+          /* Modal */
+          .modal-overlay { padding: 12px; }
+          .modal-content {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 20px;
+          }
+          .modal-header { padding: 20px; }
+          .modal-header h2 { font-size: 20px; }
+          .modal-body { padding: 20px; }
+
+          /* Brand Grid - 3열에서 1열로 */
+          .brand-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .brand-card {
+            padding: 16px;
+            border-radius: 12px;
+          }
+          .brand-logo { height: 100px; margin-bottom: 12px; }
+          .brand-name { font-size: 15px; }
+          .brand-benefit { font-size: 13px; }
+
+          /* Membership Tabs */
+          .membership-tab {
+            padding: 12px 16px;
+            font-size: 13px;
+            border-radius: 10px 10px 0 0;
+          }
+
+          /* Plan Card */
+          .plan-card { padding: 16px; border-radius: 12px; }
+          .plan-name { font-size: 18px; }
+          .plan-price { font-size: 24px; margin-bottom: 12px; }
+          .plan-feature { font-size: 13px; }
+
+          /* Payment Amount */
+          .payment-amount { padding: 24px; border-radius: 12px; }
+          .payment-amount .amount { font-size: 40px; }
+          .payment-amount .dday { font-size: 14px; }
+
+          /* Usage Bar */
+          .usage-bar { height: 20px; border-radius: 10px; }
+          .usage-fill { font-size: 11px; padding-right: 10px; }
+
+          /* Coupon Card */
+          .coupon-card { padding: 20px; border-radius: 12px; }
+          .coupon-discount { font-size: 28px; }
+          .coupon-desc { font-size: 13px; }
+
+          /* Button */
+          .btn-primary {
+            padding: 12px 24px;
+            font-size: 15px;
+            border-radius: 10px;
+          }
+
+          /* Input */
+          .input-field {
+            padding: 10px 14px;
+            font-size: 15px;
+            border-radius: 10px;
+          }
+          .input-label { font-size: 13px; }
+
+          /* Guide Steps */
+          .step-number { width: 28px; height: 28px; font-size: 14px; }
+          .step-title { font-size: 15px; }
+          .step-desc { font-size: 13px; }
+
+          /* Payment Method */
+          .payment-method { padding: 14px; border-radius: 10px; }
+        }
       `}</style>
 
       <header className="tworld-header">
@@ -693,11 +1039,19 @@ export default function TworldPage() {
             <a onClick={() => setActiveModal('search')}>검색</a>
           </nav>
           <div className="user-menu">
-            <Link href="/user/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
-            {' | '}
-            <Link href="/auth/signup" style={{ textDecoration: 'none', color: 'inherit' }}>회원가입</Link>
-            {' | '}
-            <a onClick={() => setActiveModal('search')} style={{ cursor: 'pointer' }}>검색</a>
+            {isLoggedIn ? (
+              <>
+                <span style={{ fontWeight: '600', color: '#3617CE' }}>{userName}님</span>
+                {' | '}
+                <a onClick={handleSignOut} style={{ cursor: 'pointer' }}>로그아웃</a>
+              </>
+            ) : (
+              <>
+                <Link href="/user/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
+                {' | '}
+                <Link href="/auth/signup" style={{ textDecoration: 'none', color: 'inherit' }}>회원가입</Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -789,21 +1143,36 @@ export default function TworldPage() {
       </footer>
 
       {/* Chatbot Button */}
-      <Link href="/user/login" className="chatbot-button">
+      <Link href={isLoggedIn ? "/chat" : "/user/login"} className="chatbot-button">
         <div className="icon">💬</div>
       </Link>
 
+      {/* Speech Bubble */}
+      {showAssistant && activeModal && (
+        <div className={`speech-bubble ${showAssistant ? 'show' : ''}`} onClick={handleAssistantClick}>
+          <div className="speech-bubble-text">
+            {getSpeechBubbleMessage()}
+          </div>
+        </div>
+      )}
+
       {/* 3D Character */}
-      <div className="character-container" suppressHydrationWarning>
-        <model-viewer
-          src="/Tworld/models/model_bye.glb"
-          camera-orbit="0deg 75deg 105%"
-          animation-name="*"
-          autoplay
-          loop
-          suppressHydrationWarning>
-        </model-viewer>
-      </div>
+      <div
+        className={`character-container ${showAssistant && activeModal ? 'show' : ''}`}
+        suppressHydrationWarning
+        onClick={handleAssistantClick}
+        dangerouslySetInnerHTML={{
+          __html: `
+            <model-viewer
+              src="/Tworld/models/model_bye.glb"
+              camera-orbit="0deg 75deg 105%"
+              animation-name="*"
+              autoplay
+              loop>
+            </model-viewer>
+          `
+        }}
+      />
 
       {/* Modals */}
       {activeModal && (
