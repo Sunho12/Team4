@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, User, Phone, Calendar, TrendingUp, MessageSquare, Home, FileText, Bell, Settings, Folder, LogOut } from 'lucide-react'
+import { Search, User, Phone, Calendar, TrendingUp, MessageSquare, Home, FileText, Bell, Settings, Folder, LogOut, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
@@ -24,6 +24,7 @@ export default function SearchPage() {
   const [noticeFilter, setNoticeFilter] = useState('all')
   const [noticeSearchQuery, setNoticeSearchQuery] = useState('')
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -255,9 +256,31 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: '#F8F9FA' }}>
+      {/* 모바일 햄버거 메뉴 버튼 */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="fixed top-4 left-4 z-50 lg:hidden bg-[#3617CE] text-white p-3 rounded-xl shadow-lg"
+        aria-label="메뉴 열기"
+      >
+        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {/* 모바일 오버레이 */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* 좌측 사이드바 */}
       <aside
-        className="w-60 min-h-screen flex flex-col shadow-2xl"
+        className={`
+          fixed lg:static inset-y-0 left-0 z-40
+          w-60 min-h-screen flex flex-col shadow-2xl
+          transform transition-transform duration-300 ease-in-out
+          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
         style={{ backgroundColor: '#3617CE' }}
       >
         {/* 메뉴 */}
@@ -311,25 +334,25 @@ export default function SearchPage() {
       </aside>
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="flex-1 overflow-auto lg:ml-0">
+        <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6 pt-20 lg:pt-6">
         {/* 헤더 */}
         {(activeMenu === 'notice' || activeMenu === 'policy') && (
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <button
-              onClick={() => setActiveMenu('search')}
+              onClick={() => setActiveMenu('home')}
               className="flex items-center gap-2 text-gray-600 hover:text-[#3617CE] mb-4 transition-colors"
               style={{ fontFamily: "'SK Mobius', sans-serif", fontSize: '14px', fontWeight: 600 }}
             >
               ← 뒤로가기 (대시보드)
             </button>
             <h1
-              className="text-5xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent mb-2"
+              className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent mb-2"
               style={{ fontFamily: "'SK Mobius', sans-serif" }}
             >
               {activeMenu === 'notice' ? '공지사항' : '정책 센터'}
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm md:text-base text-gray-600">
               {activeMenu === 'notice' ? '중요 공지사항과 업데이트 내용을 확인하세요' : '최신 정책 정보와 변경사항을 확인하세요'}
             </p>
           </div>
@@ -339,21 +362,21 @@ export default function SearchPage() {
         {activeMenu === 'notice' && (
           <>
             {/* 검색 및 필터 */}
-            <div className="backdrop-blur-sm bg-white/95 rounded-3xl shadow-lg border border-gray-200/50 p-8 mb-6">
-              <div className="flex gap-4 mb-6">
+            <div className="backdrop-blur-sm bg-white/95 rounded-2xl md:rounded-3xl shadow-lg border border-gray-200/50 p-4 md:p-8 mb-4 md:mb-6">
+              <div className="flex gap-4 mb-4 md:mb-6">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-gray-400" />
                   <Input
                     placeholder="공지사항 검색..."
                     value={noticeSearchQuery}
                     onChange={(e) => setNoticeSearchQuery(e.target.value)}
-                    className="pl-12 h-12 rounded-xl border-2 border-gray-200 focus:border-[#3617CE]"
+                    className="pl-10 md:pl-12 h-10 md:h-12 rounded-xl border-2 border-gray-200 focus:border-[#3617CE] text-sm md:text-base"
                   />
                 </div>
               </div>
 
               {/* 필터 칩 */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {[
                   { id: 'all', label: '전체' },
                   { id: 'important', label: '중요' },
@@ -497,7 +520,7 @@ export default function SearchPage() {
         {activeMenu === 'policy' && (
           <>
             {/* 서브 내비게이션 */}
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-4 md:mb-6">
               {[
                 { id: 'device', label: '단말기 정책' },
                 { id: 'service', label: '부가서비스' },
@@ -506,7 +529,7 @@ export default function SearchPage() {
                 <Button
                   key={tab.id}
                   onClick={() => setActivePolicy(tab.id)}
-                  className={`flex-1 h-14 text-lg font-bold ${
+                  className={`flex-1 h-12 md:h-14 text-sm md:text-lg font-bold ${
                     activePolicy === tab.id
                       ? 'bg-[#3617CE] text-white'
                       : 'bg-white text-gray-700 hover:bg-gray-100'
@@ -702,13 +725,13 @@ export default function SearchPage() {
         {(activeMenu === 'search' || activeMenu === 'home') && (
           <>
         {/* 섹션 A: 고객 검색 (Hero 영역) */}
-        <div className="backdrop-blur-sm bg-white/95 rounded-3xl shadow-lg border border-gray-200/50 p-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">고객 검색</h2>
+        <div className="backdrop-blur-sm bg-white/95 rounded-2xl md:rounded-3xl shadow-lg border border-gray-200/50 p-4 md:p-8 mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4">고객 검색</h2>
 
           {/* 검색 바 */}
-          <div className="relative mb-6">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">
-              <Search className="w-5 h-5" />
+          <div className="relative mb-4 md:mb-6">
+            <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+              <Search className="w-4 md:w-5 h-4 md:h-5" />
             </div>
             <Input
               placeholder="고객 이름 또는 전화번호로 검색하세요..."
@@ -718,16 +741,16 @@ export default function SearchPage() {
                 setSearchError('')
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="pl-12 pr-32 h-14 rounded-xl border-2 border-gray-200 focus:border-[#3617CE] focus:ring-2 focus:ring-[#3617CE]/20 transition-all text-base"
+              className="pl-10 md:pl-12 pr-24 md:pr-32 h-12 md:h-14 rounded-xl border-2 border-gray-200 focus:border-[#3617CE] focus:ring-2 focus:ring-[#3617CE]/20 transition-all text-sm md:text-base"
             />
             <Button
-              onClick={handleSearch}
+              onClick={() => handleSearch()}
               disabled={isLoading || !query.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-6 rounded-lg text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 md:h-10 px-3 md:px-6 rounded-lg text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-xs md:text-sm"
               style={{ backgroundColor: '#EA002C' }}
             >
-              <Search className="h-4 w-4 mr-2" />
-              {isLoading ? '검색 중...' : '검색'}
+              <Search className="h-3 md:h-4 w-3 md:w-4 md:mr-2" />
+              <span className="hidden md:inline">{isLoading ? '검색 중...' : '검색'}</span>
             </Button>
           </div>
 
@@ -744,18 +767,18 @@ export default function SearchPage() {
           {/* 최근 상담 고객 */}
           {!showDetail && (
             <div>
-              <p className="text-sm font-semibold text-gray-700 mb-3">최근 상담 고객</p>
-              <div className="flex gap-3">
+              <p className="text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3">최근 상담 고객</p>
+              <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 -mx-1 px-1">
                 {recentCustomers.map((customer, index) => (
                   <button
                     key={index}
                     onClick={() => handleSearch(customer.name)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-xl border border-blue-200/50 transition-all"
+                    className="flex items-center gap-2 px-3 md:px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-xl border border-blue-200/50 transition-all flex-shrink-0"
                   >
-                    <User className="w-4 h-4 text-blue-600" />
+                    <User className="w-3 md:w-4 h-3 md:h-4 text-blue-600" />
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-gray-900">{customer.name}</p>
-                      <p className="text-xs text-gray-500">{customer.time}</p>
+                      <p className="text-xs md:text-sm font-semibold text-gray-900 whitespace-nowrap">{customer.name}</p>
+                      <p className="text-[10px] md:text-xs text-gray-500">{customer.time}</p>
                     </div>
                   </button>
                 ))}
@@ -767,19 +790,65 @@ export default function SearchPage() {
         {/* 검색 결과 리스트 (테이블) */}
         {results.length > 0 && !showDetail && (
           <div
-            className="backdrop-blur-sm bg-white/95 rounded-3xl shadow-lg border border-gray-200/50 p-8 mb-6 animate-in fade-in duration-500"
+            className="backdrop-blur-sm bg-white/95 rounded-2xl md:rounded-3xl shadow-lg border border-gray-200/50 p-4 md:p-8 mb-4 md:mb-6 animate-in fade-in duration-500"
             style={{ fontFamily: "'Moebius', 'Inter', sans-serif" }}
           >
             {/* 검색 결과 헤더 */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">검색 결과</h2>
-              <p className="text-[#3617CE] font-semibold">
+            <div className="mb-4 md:mb-6">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">검색 결과</h2>
+              <p className="text-sm md:text-base text-[#3617CE] font-semibold">
                 총 <span className="text-[#EA002C]">{results.length}</span>건이 조회되었습니다
               </p>
             </div>
 
-            {/* 검색 결과 테이블 */}
-            <div className="overflow-x-auto">
+            {/* 모바일 카드 뷰 */}
+            <div className="md:hidden space-y-3">
+              {results.map((customer, index) => (
+                <div
+                  key={customer.id || index}
+                  onClick={() => router.push(`/customers/${customer.id}`)}
+                  className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-all"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#3617CE] to-[#5B3FE8] rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {customer.customer_name?.charAt(0) || 'N'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-bold text-gray-900 truncate">{customer.customer_name || '-'}</h3>
+                      <p className="text-xs text-gray-600">{customer.customer_phone || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">생년월일</span>
+                      <span className="text-gray-900 font-medium">{customer.customer_birth || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">요금제</span>
+                      <span className="text-gray-900 font-medium">{customer.plan_name || '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">결합</span>
+                      <Badge className="bg-gradient-to-r from-[#FF7A00] to-[#FFA500] text-white text-xs">
+                        {customer.bundle_type || '없음'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/customers/${customer.id}`)
+                    }}
+                    className="w-full mt-3 border-2 border-[#EA002C] text-[#EA002C] bg-white hover:bg-[#EA002C] hover:text-white transition-all duration-300 text-sm"
+                  >
+                    상세 정보 보기
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* 데스크톱 테이블 뷰 */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b-2 border-gray-300">
@@ -846,43 +915,49 @@ export default function SearchPage() {
 
         {/* 섹션 B & C: 공지사항 + 정책 센터 (초기 상태에만 표시) */}
         {!showDetail && (
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {/* 섹션 B: 공지사항 (하단 좌측 50%) */}
-            <div className="backdrop-blur-sm bg-white/95 rounded-3xl shadow-lg border border-gray-200/50 p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <Bell className="w-6 h-6 text-[#3617CE]" />
+            <div className="backdrop-blur-sm bg-white/95 rounded-2xl md:rounded-3xl shadow-lg border border-gray-200/50 p-4 md:p-8">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-lg md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Bell className="w-5 md:w-6 h-5 md:h-6 text-[#3617CE]" />
                   주요 공지사항
                 </h2>
-                <Button variant="ghost" size="sm" className="text-[#3617CE] hover:text-[#2910A8]">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[#3617CE] hover:text-[#2910A8] text-xs md:text-sm"
+                  onClick={() => setActiveMenu('notice')}
+                >
                   전체보기 →
                 </Button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {notices.map((notice) => (
                   <button
                     key={notice.id}
-                    className="w-full text-left p-4 bg-white rounded-xl border border-gray-200 hover:border-[#3617CE] hover:shadow-md transition-all group"
+                    onClick={() => setActiveMenu('notice')}
+                    className="w-full text-left p-3 md:p-4 bg-white rounded-xl border border-gray-200 hover:border-[#3617CE] hover:shadow-md transition-all group"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           {notice.important && (
                             <Badge
-                              className="text-white text-xs px-2 py-0.5"
+                              className="text-white text-[10px] md:text-xs px-2 py-0.5 flex-shrink-0"
                               style={{ backgroundColor: '#EA002C' }}
                             >
                               중요
                             </Badge>
                           )}
-                          <p className="text-sm font-semibold text-gray-900 group-hover:text-[#3617CE] transition-colors">
+                          <p className="text-xs md:text-sm font-semibold text-gray-900 group-hover:text-[#3617CE] transition-colors truncate">
                             {notice.title}
                           </p>
                         </div>
-                        <p className="text-xs text-gray-500">{notice.date}</p>
+                        <p className="text-[10px] md:text-xs text-gray-500">{notice.date}</p>
                       </div>
-                      <FileText className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+                      <FileText className="w-3 md:w-4 h-3 md:h-4 text-gray-400 flex-shrink-0" />
                     </div>
                   </button>
                 ))}
@@ -890,23 +965,23 @@ export default function SearchPage() {
             </div>
 
             {/* 섹션 C: 정책 센터 (하단 우측 50%) */}
-            <div className="backdrop-blur-sm bg-white/95 rounded-3xl shadow-lg border border-gray-200/50 p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Folder className="w-6 h-6 text-[#3617CE]" />
+            <div className="backdrop-blur-sm bg-white/95 rounded-2xl md:rounded-3xl shadow-lg border border-gray-200/50 p-4 md:p-8">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-4 md:mb-6 flex items-center gap-2">
+                <Folder className="w-5 md:w-6 h-5 md:h-6 text-[#3617CE]" />
                 실시간 정책 센터
               </h2>
 
               {/* 정책 탭 버튼 */}
-              <div className="flex gap-2 mb-6">
+              <div className="flex gap-2 mb-4 md:mb-6 flex-wrap">
                 {[
-                  { id: 'device', label: '단말기 정책' },
+                  { id: 'device', label: '단말기' },
                   { id: 'service', label: '부가서비스' },
-                  { id: 'subsidy', label: '보조금 정책' },
+                  { id: 'subsidy', label: '보조금' },
                 ].map((tab) => (
                   <Button
                     key={tab.id}
                     onClick={() => setActivePolicy(tab.id)}
-                    className={`flex-1 ${
+                    className={`flex-1 text-xs md:text-sm ${
                       activePolicy === tab.id
                         ? 'bg-[#3617CE] text-white'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -918,20 +993,20 @@ export default function SearchPage() {
               </div>
 
               {/* 정책 내용 영역 */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/50 min-h-[300px]">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl md:rounded-2xl p-4 md:p-6 border border-blue-200/50 min-h-[250px] md:min-h-[300px]">
                 {activePolicy === 'device' && (
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">단말기 할부 정책</h3>
-                    <ul className="space-y-3">
+                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-3 md:mb-4">단말기 할부 정책</h3>
+                    <ul className="space-y-2 md:space-y-3">
                       <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-[#3617CE] rounded-full mt-1.5"></div>
-                        <p className="text-sm text-gray-700">
+                        <div className="w-2 h-2 bg-[#3617CE] rounded-full mt-1.5 flex-shrink-0"></div>
+                        <p className="text-xs md:text-sm text-gray-700">
                           2월 기준 할부 이율: <span className="font-bold">연 5.9%</span>
                         </p>
                       </li>
                       <li className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-[#3617CE] rounded-full mt-1.5"></div>
-                        <p className="text-sm text-gray-700">
+                        <div className="w-2 h-2 bg-[#3617CE] rounded-full mt-1.5 flex-shrink-0"></div>
+                        <p className="text-xs md:text-sm text-gray-700">
                           최대 할부 개월: <span className="font-bold">24개월</span>
                         </p>
                       </li>
