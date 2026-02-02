@@ -63,17 +63,26 @@ export default function SearchPage() {
     if (!query.trim()) return
 
     setIsLoading(true)
+    setShowDetail(false)
 
     try {
       const response = await fetch(`/api/agency/search?q=${encodeURIComponent(query)}`)
 
       if (response.ok) {
         const data = await response.json()
-        setResults(data.customers)
-        // 검색 결과가 있으면 즉시 상세 대시보드 표시
-        if (data.customers && data.customers.length > 0) {
-          setTimeout(() => setShowDetail(true), 100)
-        }
+
+        // 실제 검색 결과 사용, 더미 값으로 누락된 필드 채우기
+        const enrichedResults = data.customers.map((customer: any, index: number) => ({
+          ...customer,
+          // 실제 데이터가 없으면 더미 값 사용
+          customer_birth: customer.customer_birth || (index === 0 ? '1990.05.20' : '1985.03.15'),
+          plan_name: customer.plan_name || (index === 0 ? '5GX 프라임플러스' : '5G 프리미어 에센셜'),
+          plan_price: customer.plan_price || (index === 0 ? 89000 : 75000),
+          bundle_type: customer.bundle_type || (index === 0 ? '온가족할인' : '유무선 결합'),
+          device_model: customer.device_model || (index === 0 ? '아이폰 15 Pro' : 'Galaxy S24 Ultra')
+        }))
+
+        setResults(enrichedResults)
       }
     } catch (error) {
       console.error('Search failed:', error)
@@ -221,201 +230,82 @@ export default function SearchPage() {
           )}
         </div>
 
-        {/* 하이엔드 벤토 그리드 - 고객 상세 대시보드 */}
-        {showDetail && results.length > 0 && (
+        {/* 검색 결과 리스트 (테이블) */}
+        {results.length > 0 && !showDetail && (
           <div
-            className="space-y-6 animate-in slide-in-from-bottom-4 duration-500"
-            style={{ fontFamily: "'SK Mobius', 'Inter', sans-serif" }}
+            className="backdrop-blur-sm bg-white/95 rounded-3xl shadow-lg border border-gray-200/50 p-8 mb-6 animate-in fade-in duration-500"
+            style={{ fontFamily: "'Moebius', 'Inter', sans-serif" }}
           >
-            {/* 섹션 1: 고객 마스터 카드 (Top / 전체 너비) */}
-            <div
-              className="rounded-3xl shadow-2xl border border-gray-200/30 p-8"
-              style={{
-                background: 'linear-gradient(135deg, #E8E8E8 0%, #FFFFFF 50%, #F5F5F5 100%)',
-              }}
-            >
-              <div className="grid grid-cols-6 gap-6 items-center">
-                {/* 이름 */}
-                <div className="flex flex-col justify-center border-r-2 border-gray-300/50 pr-6">
-                  <p className="text-xs text-gray-500 mb-1">고객명</p>
-                  <Link
-                    href={`/customers/${results[0]?.session_id || results[0]?.id || 'unknown'}`}
-                    className="text-2xl font-bold text-gray-900 hover:text-[#3617CE] transition-colors cursor-pointer"
-                  >
-                    {results[0]?.customer_name || '김철수'}
-                  </Link>
-                </div>
-
-                {/* 생년월일 */}
-                <div className="flex flex-col justify-center border-r-2 border-gray-300/50 pr-6">
-                  <p className="text-xs text-gray-500 mb-1">생년월일</p>
-                  <p className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Inter, Roboto' }}>
-                    {results[0]?.customer_birth || '1990.05.20'}
-                  </p>
-                </div>
-
-                {/* 전화번호 */}
-                <div className="flex flex-col justify-center border-r-2 border-gray-300/50 pr-6">
-                  <p className="text-xs text-gray-500 mb-1">연락처</p>
-                  <p className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Inter, Roboto' }}>
-                    {results[0]?.customer_phone || '010-1234-5678'}
-                  </p>
-                </div>
-
-                {/* 결합여부 */}
-                <div className="flex flex-col justify-center border-r-2 border-gray-300/50 pr-6">
-                  <p className="text-xs text-gray-500 mb-1">결합상품</p>
-                  <Badge className="bg-gradient-to-r from-[#FF7A00] to-[#FFA500] text-white px-3 py-1 w-fit">
-                    {results[0]?.bundle_type || '온가족할인 (30년)'}
-                  </Badge>
-                </div>
-
-                {/* 단말기 정보 */}
-                <div className="flex flex-col justify-center border-r-2 border-gray-300/50 pr-6">
-                  <p className="text-xs text-gray-500 mb-1">단말기</p>
-                  <p className="text-sm font-bold text-gray-900">{results[0]?.device_model || '아이폰 15 Pro'}</p>
-                  <Badge className="bg-gradient-to-r from-[#FF7A00] to-[#FFA500] text-white px-2 py-0.5 text-xs w-fit mt-1">
-                    잔여 {results[0]?.device_remaining_months || '6'}개월
-                  </Badge>
-                </div>
-
-                {/* 요금제 */}
-                <div className="flex flex-col justify-center">
-                  <p className="text-xs text-gray-500 mb-1">현재 요금제</p>
-                  <p className="text-sm font-bold text-gray-900">{results[0]?.plan_name || '5GX 프라임플러스'}</p>
-                  <p className="text-xs text-gray-600 mt-1" style={{ fontFamily: 'Inter, Roboto' }}>
-                    월 {results[0]?.plan_price?.toLocaleString() || '89,000'}원
-                  </p>
-                </div>
-              </div>
+            {/* 검색 결과 헤더 */}
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">검색 결과</h2>
+              <p className="text-[#3617CE] font-semibold">
+                총 <span className="text-[#EA002C]">{results.length}</span>건이 조회되었습니다
+              </p>
             </div>
 
-            {/* 섹션 2 & 3: 벤토 그리드 레이아웃 */}
-            <div className="grid grid-cols-5 gap-6">
-              {/* 섹션 2: 과거 상담 히스토리 (60% - 3칸) */}
-              <div className="col-span-3 backdrop-blur-sm bg-white/95 rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <div className="w-2 h-8 bg-gradient-to-b from-[#3617CE] to-[#5B3FE8] rounded-full"></div>
-                  최근 1년간의 상담 여정
-                </h2>
-
-                <div className="space-y-4">
-                  {/* 스켈레톤 카드 1 */}
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="group bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200 animate-pulse hover:bg-gradient-to-br hover:from-gray-100 hover:to-gray-150 transition-all cursor-pointer relative"
+            {/* 검색 결과 테이블 */}
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-gray-300">
+                    <th className="text-left py-4 px-4 text-sm font-bold text-gray-700">이름</th>
+                    <th className="text-left py-4 px-4 text-sm font-bold text-gray-700">생년월일</th>
+                    <th className="text-left py-4 px-4 text-sm font-bold text-gray-700">전화번호</th>
+                    <th className="text-left py-4 px-4 text-sm font-bold text-gray-700">가입된 요금제</th>
+                    <th className="text-left py-4 px-4 text-sm font-bold text-gray-700">결합 여부</th>
+                    <th className="text-center py-4 px-4 text-sm font-bold text-gray-700">상세 정보</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {results.map((customer, index) => (
+                    <tr
+                      key={customer.id || index}
+                      className="border-b border-gray-200 hover:bg-[#F8F9FA] transition-colors duration-200 cursor-pointer"
+                      onClick={() => router.push(`/customers/${customer.id}`)}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="h-4 bg-gray-300 rounded w-28"></div>
-                        <div className="h-6 bg-gray-300 rounded-full w-24"></div>
-                      </div>
-                      <div className="h-3 bg-gray-300 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-
-                      {/* 호버 시 나타나는 상세보기 버튼 */}
-                      <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-[#3617CE] to-[#5B3FE8] rounded-full flex items-center justify-center text-white font-bold">
+                            {customer.customer_name?.charAt(0) || 'N'}
+                          </div>
+                          <span className="text-gray-900 font-semibold">{customer.customer_name || '-'}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-gray-700" style={{ fontFamily: 'Inter, Roboto' }}>
+                        {customer.customer_birth || '-'}
+                      </td>
+                      <td className="py-4 px-4 text-gray-700" style={{ fontFamily: 'Inter, Roboto' }}>
+                        {customer.customer_phone || '-'}
+                      </td>
+                      <td className="py-4 px-4">
+                        <div>
+                          <p className="text-gray-900 font-semibold text-sm">{customer.plan_name || '-'}</p>
+                          <p className="text-gray-500 text-xs" style={{ fontFamily: 'Inter, Roboto' }}>
+                            월 {customer.plan_price?.toLocaleString() || '0'}원
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Badge className="bg-gradient-to-r from-[#FF7A00] to-[#FFA500] text-white px-3 py-1">
+                          {customer.bundle_type || '없음'}
+                        </Badge>
+                      </td>
+                      <td className="py-4 px-4 text-center">
                         <Button
-                          size="sm"
-                          className="bg-[#3617CE] hover:bg-[#2910A8] text-white text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/customers/${customer.id}`)
+                          }}
+                          className="border-2 border-[#EA002C] text-[#EA002C] bg-white hover:bg-[#EA002C] hover:text-white transition-all duration-300 px-4 py-2 rounded-lg font-semibold text-sm"
                         >
-                          상세보기 →
+                          상세 정보 보기
                         </Button>
-                      </div>
-                    </div>
+                      </td>
+                    </tr>
                   ))}
-
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-500">과거 상담 데이터를 분석 중입니다...</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* 섹션 3: AI 세일즈 인사이트 (40% - 2칸) */}
-              <div className="col-span-2 backdrop-blur-sm bg-white/95 rounded-3xl shadow-xl border border-gray-200/50 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <div className="w-2 h-8 bg-gradient-to-b from-[#3617CE] to-[#5B3FE8] rounded-full"></div>
-                  AI 세일즈 인사이트
-                </h2>
-
-                {/* 잠재고객지수 - 세미 서클 게이지 */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-blue-200/50">
-                  <p className="text-center text-sm font-semibold text-gray-900 mb-4">잠재고객지수</p>
-
-                  {/* 세미 서클 게이지 차트 */}
-                  <div className="relative w-full h-32 overflow-hidden">
-                    <svg className="w-full h-full" viewBox="0 0 200 120">
-                      {/* 배경 아크 */}
-                      <path
-                        d="M 20 100 A 80 80 0 0 1 180 100"
-                        fill="none"
-                        stroke="#E5E7EB"
-                        strokeWidth="20"
-                        strokeLinecap="round"
-                      />
-                      {/* 진행 아크 */}
-                      <path
-                        d="M 20 100 A 80 80 0 0 1 180 100"
-                        fill="none"
-                        stroke="url(#gaugeGradient)"
-                        strokeWidth="20"
-                        strokeLinecap="round"
-                        strokeDasharray={`${Math.PI * 80 * (potentialScore / 100)} ${Math.PI * 80}`}
-                        className="transition-all duration-1000"
-                      />
-                      <defs>
-                        <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#3617CE" />
-                          <stop offset="100%" stopColor="#5B3FE8" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-
-                    {/* 중앙 점수 */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pt-8">
-                      <span
-                        className="text-5xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent"
-                        style={{ fontFamily: 'Inter, Roboto' }}
-                      >
-                        {potentialScore}
-                      </span>
-                      <span className="text-xs text-gray-600 font-medium">/ 100점</span>
-                    </div>
-                  </div>
-
-                  <div className="text-center mt-4">
-                    <Badge
-                      className="text-white px-4 py-1"
-                      style={{ backgroundColor: '#EA002C' }}
-                    >
-                      기기변경 가능성 매우 높음
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* AI 가이드 */}
-                <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-6 border-2 border-orange-200">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[#EA002C] to-[#FF7A00] rounded-full flex items-center justify-center flex-shrink-0">
-                      <MessageSquare className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-orange-900 mb-2 flex items-center gap-1">
-                        AI 추천 상담 가이드
-                      </p>
-                      <p className="text-sm font-bold text-gray-900 leading-relaxed">
-                        아이폰 17 사전예약 알림 및 요금제 상향 제안 권장
-                      </p>
-                      <div className="mt-3 pt-3 border-t border-orange-200">
-                        <p className="text-xs text-orange-800">
-                          • 현재 요금제 대비 20GB 추가 데이터 필요<br />
-                          • 최근 3개월 데이터 사용량 150% 증가 추세
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                </tbody>
+              </table>
             </div>
           </div>
         )}
