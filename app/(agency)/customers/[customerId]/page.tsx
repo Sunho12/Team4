@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { PredictionScoreCard } from '@/components/agency/PredictionScoreCard'
 import { format } from 'date-fns'
 
 export default function CustomerDetailPage() {
+  const router = useRouter()
   const params = useParams()
   const customerId = params.customerId as string
 
@@ -17,10 +18,41 @@ export default function CustomerDetailPage() {
   const [predictions, setPredictions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPredicting, setIsPredicting] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
 
   useEffect(() => {
-    loadCustomerData()
-  }, [customerId])
+    checkAuth()
+  }, [])
+
+  useEffect(() => {
+    if (authChecked) {
+      loadCustomerData()
+    }
+  }, [customerId, authChecked])
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+
+      if (!response.ok) {
+        router.push('/search/login')
+        return
+      }
+
+      const data = await response.json()
+      const userRole = data.user.role
+
+      if (userRole !== 'admin' && userRole !== 'agency_staff') {
+        alert('권한이 없습니다. 대리점 직원만 접근할 수 있습니다.')
+        router.push('/user/login')
+        return
+      }
+
+      setAuthChecked(true)
+    } catch (error) {
+      router.push(`/auth/login?returnUrl=/customers/${customerId}`)
+    }
+  }
 
   const loadCustomerData = async () => {
     try {

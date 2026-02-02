@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,9 +11,47 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 
 export default function SearchPage() {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [authChecked, setAuthChecked] = useState(false)
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+
+      if (!response.ok) {
+        router.push('/search/login')
+        return
+      }
+
+      const data = await response.json()
+      const userRole = data.user.role
+
+      if (userRole !== 'admin' && userRole !== 'agency_staff') {
+        alert('권한이 없습니다. 대리점 직원만 접근할 수 있습니다.')
+        router.push('/user/login')
+        return
+      }
+
+      setAuthChecked(true)
+    } catch (error) {
+      router.push('/auth/login?returnUrl=/search')
+    }
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">로딩 중...</p>
+      </div>
+    )
+  }
 
   const handleSearch = async () => {
     if (!query.trim()) return
