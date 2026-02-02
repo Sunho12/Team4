@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect } from 'react'
 
 export default function TworldPage() {
@@ -38,7 +39,7 @@ export default function TworldPage() {
         /* Header */
         .tworld-header { background: #fff; border-bottom: 1px solid var(--border-light); height: 72px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-inner { width: 100%; max-width: 1080px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
-        .logo { font-size: 28px; font-weight: 800; color: var(--t-blue); cursor: pointer; }
+        .logo { display: flex; align-items: center; cursor: pointer; }
         .nav { display: flex; gap: 40px; }
         .nav a { text-decoration: none; color: var(--text-black); font-size: 17px; font-weight: 600; }
         .nav a:hover { color: var(--t-blue); }
@@ -122,7 +123,15 @@ export default function TworldPage() {
 
       <header className="tworld-header">
         <div className="header-inner">
-          <div className="logo">T world</div>
+          <div className="logo">
+            <Image
+              src="/Tworld/T.png"
+              alt="T world"
+              width={40}
+              height={40}
+              priority
+            />
+          </div>
           <nav className="nav">
             <a href="#">T 다이렉트샵</a>
             <a href="#">MY</a>
