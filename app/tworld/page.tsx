@@ -794,16 +794,21 @@ export default function TworldPage() {
       </Link>
 
       {/* 3D Character */}
-      <div className="character-container" suppressHydrationWarning>
-        <model-viewer
-          src="/Tworld/models/model_bye.glb"
-          camera-orbit="0deg 75deg 105%"
-          animation-name="*"
-          autoplay
-          loop
-          suppressHydrationWarning>
-        </model-viewer>
-      </div>
+      <div
+        className="character-container"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{
+          __html: `
+            <model-viewer
+              src="/Tworld/models/model_bye.glb"
+              camera-orbit="0deg 75deg 105%"
+              animation-name="*"
+              autoplay
+              loop>
+            </model-viewer>
+          `
+        }}
+      />
 
       {/* Modals */}
       {activeModal && (
