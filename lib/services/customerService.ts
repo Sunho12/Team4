@@ -66,10 +66,11 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
   return results
 }
 
-export async function getCustomerDetail(sessionId: string) {
+export async function getCustomerDetail(customerId: string) {
   const supabase = await createServiceRoleClient()
 
-  const { data: session, error: sessionError } = await supabase
+  // customerId is actually profiles.id, so we need to find customer_sessions by user_id
+  const { data: sessions, error: sessionError } = await supabase
     .from('customer_sessions')
     .select(`
       id,
@@ -89,17 +90,26 @@ export async function getCustomerDetail(sessionId: string) {
         )
       )
     `)
-    .eq('id', sessionId)
-    .single()
+    .eq('user_id', customerId)
+    .order('created_at', { ascending: false })
 
   if (sessionError) {
     throw new Error(`Failed to fetch customer detail: ${sessionError.message}`)
   }
 
+  // Use the first (most recent) session or create a default one
+  const session = sessions && sessions.length > 0 ? sessions[0] : null
+
+  if (!session) {
+    throw new Error('No customer session found for this user')
+  }
+
+  // Get predictions for all sessions of this customer
+  const sessionIds = sessions?.map(s => s.id) || []
   const { data: predictions, error: predictionsError } = await supabase
     .from('purchase_predictions')
     .select('*')
-    .eq('session_id', sessionId)
+    .in('session_id', sessionIds)
     .order('created_at', { ascending: false })
 
   if (predictionsError) {
