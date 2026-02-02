@@ -40,16 +40,34 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
     }
   }, [conversationId])
 
+  // Check for context from Tworld page, or show welcome message
   useEffect(() => {
-    // Add welcome message when conversation starts with no messages
     if (conversationId && messages.length === 0 && !isLoading) {
-      const welcomeMessage: Message = {
-        id: 'welcome-' + crypto.randomUUID(),
-        role: 'assistant',
-        content: '안녕하세요! T-world 상담 챗봇입니다.\n어떤 업무를 도와드릴까요?',
-        created_at: new Date().toISOString(),
+      const context = localStorage.getItem('chatContext')
+
+      let initialMessage: Message
+
+      if (context) {
+        // Add context as initial assistant message
+        initialMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: context,
+          created_at: new Date().toISOString(),
+        }
+        // Clear context after using it
+        localStorage.removeItem('chatContext')
+      } else {
+        // Add welcome message
+        initialMessage = {
+          id: 'welcome-' + crypto.randomUUID(),
+          role: 'assistant',
+          content: '안녕하세요! T-world 상담 챗봇입니다.\n어떤 업무를 도와드릴까요?',
+          created_at: new Date().toISOString(),
+        }
       }
-      setMessages([welcomeMessage])
+
+      setMessages([initialMessage])
     }
   }, [conversationId, messages.length, isLoading])
 
