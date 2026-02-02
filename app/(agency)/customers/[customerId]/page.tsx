@@ -65,7 +65,7 @@ export default function CustomerDetailPage() {
       const response = await fetch('/api/auth/me')
 
       if (!response.ok) {
-        router.push('/search/login')
+        router.push('/auth/login?mode=agency&returnUrl=/customers/' + customerId)
         return
       }
 
@@ -74,13 +74,13 @@ export default function CustomerDetailPage() {
 
       if (userRole !== 'admin' && userRole !== 'agency_staff') {
         alert('권한이 없습니다. 대리점 직원만 접근할 수 있습니다.')
-        router.push('/user/login')
+        router.push('/search')
         return
       }
 
       setAuthChecked(true)
     } catch (error) {
-      router.push(`/auth/login?returnUrl=/customers/${customerId}`)
+      router.push(`/auth/login?mode=agency&returnUrl=/customers/${customerId}`)
     }
   }
 
@@ -278,11 +278,195 @@ export default function CustomerDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#F8F9FA', fontFamily: "'SK Mobius', sans-serif" }}>
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#3617CE] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">고객 정보를 불러오는 중...</p>
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(248, 249, 250, 0.95)', backdropFilter: 'blur(10px)', fontFamily: "'SK Mobius', sans-serif" }}>
+        <div className="relative w-full max-w-4xl h-96 flex items-center justify-center">
+          {/* SVG 애니메이션 컨테이너 */}
+          <svg className="w-full h-full" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              {/* 그라데이션 정의 */}
+              <linearGradient id="bridgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#EA002C" />
+                <stop offset="100%" stopColor="#FF7A00" />
+              </linearGradient>
+
+              <linearGradient id="towerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#4B0082" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="#6A0DAD" stopOpacity="0.4" />
+              </linearGradient>
+
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+
+              {/* 데이터 캡슐 클립 패스 */}
+              <clipPath id="bridgeClip">
+                <path d="M 150 200 Q 400 150 650 200" />
+              </clipPath>
+            </defs>
+
+            {/* 좌측 타워 (Online) */}
+            <g className="tower-left">
+              {/* 타워 베이스 */}
+              <rect x="100" y="220" width="100" height="120" rx="8" fill="url(#towerGradient)" opacity="0.6">
+                <animate attributeName="opacity" values="0.6;0.8;0.6" dur="2s" repeatCount="indefinite" />
+              </rect>
+              <rect x="110" y="200" width="80" height="20" rx="4" fill="url(#towerGradient)" opacity="0.7">
+                <animate attributeName="opacity" values="0.7;0.9;0.7" dur="2s" repeatCount="indefinite" />
+              </rect>
+              <rect x="120" y="180" width="60" height="20" rx="4" fill="url(#towerGradient)" opacity="0.8">
+                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" />
+              </rect>
+
+              {/* Cloud 아이콘 */}
+              <g transform="translate(130, 140)">
+                <path d="M 10 20 Q 10 10 20 10 Q 30 10 30 20 Q 40 20 40 30 Q 40 40 30 40 L 10 40 Q 0 40 0 30 Q 0 20 10 20"
+                      fill="#5B3FE8" opacity="0.9" filter="url(#glow)">
+                  <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite" />
+                </path>
+              </g>
+            </g>
+
+            {/* 우측 타워 (Store) */}
+            <g className="tower-right">
+              {/* 타워 베이스 */}
+              <rect x="600" y="220" width="100" height="120" rx="8" fill="url(#towerGradient)" opacity="0.6">
+                <animate attributeName="opacity" values="0.6;0.8;0.6" dur="2s" repeatCount="indefinite" begin="0.5s" />
+              </rect>
+              <rect x="610" y="200" width="80" height="20" rx="4" fill="url(#towerGradient)" opacity="0.7">
+                <animate attributeName="opacity" values="0.7;0.9;0.7" dur="2s" repeatCount="indefinite" begin="0.5s" />
+              </rect>
+              <rect x="620" y="180" width="60" height="20" rx="4" fill="url(#towerGradient)" opacity="0.8">
+                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" begin="0.5s" />
+              </rect>
+
+              {/* Shop 아이콘 */}
+              <g transform="translate(630, 140)">
+                <rect x="5" y="15" width="30" height="25" rx="2" fill="#5B3FE8" opacity="0.9" filter="url(#glow)">
+                  <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite" />
+                </rect>
+                <path d="M 0 15 L 40 15 L 35 5 L 5 5 Z" fill="#5B3FE8" opacity="0.9" filter="url(#glow)">
+                  <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite" />
+                </path>
+                <rect x="12" y="22" width="7" height="12" fill="#F8F9FA" />
+                <rect x="21" y="22" width="7" height="12" fill="#F8F9FA" />
+              </g>
+            </g>
+
+            {/* 연결의 다리 (아치형) */}
+            <path
+              d="M 150 200 Q 400 150 650 200"
+              fill="none"
+              stroke="url(#bridgeGradient)"
+              strokeWidth="6"
+              strokeLinecap="round"
+              filter="url(#glow)"
+              opacity="0.9"
+            >
+              <animate attributeName="opacity" values="0.7;1;0.7" dur="1.5s" repeatCount="indefinite" />
+              <animate attributeName="stroke-width" values="6;8;6" dur="1.5s" repeatCount="indefinite" />
+            </path>
+
+            {/* 데이터 흐름 1 */}
+            <circle r="8" fill="#EA002C" filter="url(#glow)">
+              <animateMotion
+                path="M 150 200 Q 400 150 650 200"
+                dur="2s"
+                repeatCount="indefinite"
+              />
+              <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" />
+            </circle>
+
+            {/* 데이터 흐름 2 */}
+            <circle r="6" fill="#FF4444" filter="url(#glow)">
+              <animateMotion
+                path="M 150 200 Q 400 150 650 200"
+                dur="2s"
+                repeatCount="indefinite"
+                begin="0.4s"
+              />
+              <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" begin="0.4s" />
+            </circle>
+
+            {/* 데이터 흐름 3 */}
+            <circle r="7" fill="#FF7A00" filter="url(#glow)">
+              <animateMotion
+                path="M 150 200 Q 400 150 650 200"
+                dur="2s"
+                repeatCount="indefinite"
+                begin="0.8s"
+              />
+              <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" begin="0.8s" />
+            </circle>
+
+            {/* 데이터 흐름 4 */}
+            <circle r="5" fill="#FFA500" filter="url(#glow)">
+              <animateMotion
+                path="M 150 200 Q 400 150 650 200"
+                dur="2s"
+                repeatCount="indefinite"
+                begin="1.2s"
+              />
+              <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" begin="1.2s" />
+            </circle>
+
+            {/* 데이터 흐름 5 (빠른 궤적) */}
+            <ellipse rx="30" ry="3" fill="#EA002C" opacity="0.6" filter="url(#glow)">
+              <animateMotion
+                path="M 150 200 Q 400 150 650 200"
+                dur="1.5s"
+                repeatCount="indefinite"
+                begin="0.2s"
+              />
+              <animate attributeName="opacity" values="0;0.6;0.6;0" dur="1.5s" repeatCount="indefinite" begin="0.2s" />
+            </ellipse>
+
+            {/* 데이터 흐름 6 (빠른 궤적) */}
+            <ellipse rx="25" ry="3" fill="#FF7A00" opacity="0.6" filter="url(#glow)">
+              <animateMotion
+                path="M 150 200 Q 400 150 650 200"
+                dur="1.5s"
+                repeatCount="indefinite"
+                begin="0.9s"
+              />
+              <animate attributeName="opacity" values="0;0.6;0.6;0" dur="1.5s" repeatCount="indefinite" begin="0.9s" />
+            </ellipse>
+
+            {/* 중앙 빛나는 포인트 */}
+            <circle cx="400" cy="150" r="4" fill="#FFFFFF" opacity="0.9" filter="url(#glow)">
+              <animate attributeName="r" values="4;6;4" dur="1s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.9;1;0.9" dur="1s" repeatCount="indefinite" />
+            </circle>
+          </svg>
+
+          {/* 텍스트 */}
+          <div className="absolute bottom-0 left-0 right-0 text-center pb-8">
+            <p className="text-[16px] font-bold text-[#222] mb-2 animate-pulse">
+              온라인과 오프라인을 연결하는 중입니다...
+            </p>
+            <p className="text-[14px] font-normal text-[#666]">
+              AI가 고객 데이터를 안전하게 분석하고 있습니다.
+            </p>
+          </div>
         </div>
+
+        <style jsx>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+          }
+
+          .tower-left, .tower-right {
+            animation: float 3s ease-in-out infinite;
+          }
+
+          .tower-right {
+            animation-delay: 0.5s;
+          }
+        `}</style>
       </div>
     )
   }
