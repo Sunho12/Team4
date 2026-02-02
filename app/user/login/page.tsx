@@ -46,8 +46,8 @@ function UserLoginForm() {
         return
       }
 
-      // 챗봇으로 이동
-      router.push('/chat')
+      // T-world 메인으로 이동 (로그인 상태 유지)
+      router.push('/tworld')
       router.refresh()
     } catch (err: any) {
       setError(err.message)
