@@ -65,7 +65,7 @@ export default function CustomerDetailPage() {
       const response = await fetch('/api/auth/me')
 
       if (!response.ok) {
-        router.push('/search/login')
+        router.push('/auth/login?mode=agency&returnUrl=/customers/' + customerId)
         return
       }
 
@@ -74,13 +74,13 @@ export default function CustomerDetailPage() {
 
       if (userRole !== 'admin' && userRole !== 'agency_staff') {
         alert('권한이 없습니다. 대리점 직원만 접근할 수 있습니다.')
-        router.push('/user/login')
+        router.push('/search')
         return
       }
 
       setAuthChecked(true)
     } catch (error) {
-      router.push(`/auth/login?returnUrl=/customers/${customerId}`)
+      router.push(`/auth/login?mode=agency&returnUrl=/customers/${customerId}`)
     }
   }
 

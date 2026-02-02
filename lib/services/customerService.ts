@@ -31,7 +31,7 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     return []
   }
 
-  // 1. profiles 테이블에서 검색 (회원가입한 고객)
+  // profiles 테이블에서만 검색 (회원가입한 고객)
   const { data: profileResults, error: profileError } = await supabase
     .from('profiles')
     .select(`
@@ -43,41 +43,15 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     .or(`full_name.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%`)
     .eq('role', 'customer')
     .order('created_at', { ascending: false })
-    .limit(25)
+    .limit(50)
 
   if (profileError) {
     console.error('❌ Profile search error:', profileError)
+    throw new Error(`Failed to search customers: ${profileError.message}`)
   }
 
-  // 2. customer_sessions 테이블에서 검색 (익명 채팅 고객)
-  const { data: sessionResults, error: sessionError } = await supabase
-    .from('customer_sessions')
-    .select(`
-      id,
-      customer_name,
-      customer_phone,
-      user_id,
-      created_at,
-      conversations (
-        id,
-        started_at,
-        conversation_summaries (
-          summary,
-          category,
-          keywords
-        )
-      )
-    `)
-    .or(`customer_name.ilike.%${cleanQuery}%,customer_phone.ilike.%${cleanQuery}%`)
-    .order('created_at', { ascending: false })
-    .limit(25)
-
-  if (sessionError) {
-    console.error('❌ Session search error:', sessionError)
-  }
-
-  // 3. profiles 결과를 customer_sessions 형식으로 변환
-  const profileResultsFormatted: CustomerSearchResult[] = (profileResults || []).map(profile => ({
+  // profiles 결과를 CustomerSearchResult 형식으로 변환
+  const results: CustomerSearchResult[] = (profileResults || []).map(profile => ({
     id: profile.id,
     customer_name: profile.full_name,
     customer_phone: profile.phone_number,
@@ -87,24 +61,9 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     conversations: []
   }))
 
-  // 4. session 결과에 source 추가
-  const sessionResultsFormatted: CustomerSearchResult[] = (sessionResults || []).map(session => ({
-    ...session,
-    source: 'session' as const
-  }))
+  console.log(`✅ Found ${results.length} customers from profiles`)
 
-  // 5. 중복 제거 (user_id가 있는 세션은 이미 profiles에서 나왔을 수 있음)
-  const profileUserIds = new Set(profileResultsFormatted.map(p => p.id))
-  const uniqueSessionResults = sessionResultsFormatted.filter(
-    session => !session.user_id || !profileUserIds.has(session.user_id)
-  )
-
-  // 6. 결과 합치기 (profiles 우선, 그 다음 sessions)
-  const allResults = [...profileResultsFormatted, ...uniqueSessionResults]
-
-  console.log(`✅ Found ${profileResults?.length || 0} profiles, ${sessionResults?.length || 0} sessions (${uniqueSessionResults.length} unique), total: ${allResults.length}`)
-
-  return allResults
+  return results
 }
 
 export async function getCustomerDetail(sessionId: string) {
