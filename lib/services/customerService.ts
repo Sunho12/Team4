@@ -127,6 +127,53 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
   return results
 }
 
+export async function getRecentCustomers(limit: number = 5): Promise<CustomerSearchResult[]> {
+  const supabase = await createServiceRoleClient()
+
+  console.log('🔍 Fetching recent customers, limit:', limit)
+
+  try {
+    const { data: recentProfiles, error } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        full_name,
+        phone_number,
+        birthdate,
+        created_at
+      `)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+
+    if (error) {
+      console.error('❌ Error fetching recent customers:', error)
+      throw new Error(`Failed to fetch recent customers: ${error.message}`)
+    }
+
+    const results: CustomerSearchResult[] = (recentProfiles || []).map(profile => ({
+      id: profile.id,
+      customer_name: profile.full_name,
+      customer_phone: profile.phone_number,
+      customer_birth: profile.birthdate,
+      plan_name: null,
+      plan_price: null,
+      bundle_type: null,
+      device_model: null,
+      device_remaining_months: null,
+      created_at: profile.created_at,
+      source: 'profile' as const,
+      user_id: profile.id,
+      conversations: []
+    }))
+
+    console.log(`✅ Found ${results.length} recent customers`)
+    return results
+  } catch (error: any) {
+    console.error('❌ Error in getRecentCustomers:', error)
+    throw error
+  }
+}
+
 export async function getCustomerDetail(customerId: string) {
   const supabase = await createServiceRoleClient()
 

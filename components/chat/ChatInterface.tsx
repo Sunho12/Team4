@@ -40,6 +40,9 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   const [stores, setStores] = useState<StoreInfo[]>([])
   const [searchLocation, setSearchLocation] = useState('')
 
+  // 대리점 데이터 제공 동의 상태
+  const [isConsentChecked, setIsConsentChecked] = useState(false)
+
   useEffect(() => {
     if (!conversationId) {
       createConversation()
@@ -177,8 +180,8 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
 
   if (summary) {
     return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="max-w-2xl w-full p-8">
+      <div className="flex items-center justify-center min-h-screen p-4" style={{ fontFamily: "'SK Mobius', -apple-system, BlinkMacSystemFont, sans-serif" }}>
+        <Card className="max-w-2xl w-full p-8 shadow-lg">
           <h2 className="text-2xl font-bold mb-6">상담이 종료되었습니다</h2>
           <div className="space-y-6">
             <div>
@@ -200,12 +203,55 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
               </div>
             </div>
 
+            {/* 대리점 데이터 제공 동의 섹션 */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <label
+                htmlFor="consent-checkbox"
+                className="flex items-start gap-3 cursor-pointer group"
+              >
+                <div className="relative flex items-center justify-center pt-0.5">
+                  <input
+                    id="consent-checkbox"
+                    type="checkbox"
+                    checked={isConsentChecked}
+                    onChange={(e) => setIsConsentChecked(e.target.checked)}
+                    className="peer w-5 h-5 rounded border-2 border-gray-300 text-[#3617CE]
+                             focus:ring-2 focus:ring-[#3617CE] focus:ring-offset-2
+                             cursor-pointer transition-all
+                             checked:bg-[#3617CE] checked:border-[#3617CE]
+                             hover:border-[#3617CE]"
+                    style={{
+                      accentColor: '#3617CE',
+                      minWidth: '20px',
+                      minHeight: '20px'
+                    }}
+                  />
+                </div>
+                <span
+                  className="text-sm leading-relaxed select-none"
+                  style={{
+                    color: '#444',
+                    fontSize: '14px',
+                    lineHeight: '1.6'
+                  }}
+                >
+                  원활한 상담을 위해 상담 내용이 대리점에 제공되는 것에 동의합니다. <span className="text-[#EA002C] font-semibold">(필수)</span>
+                </span>
+              </label>
+            </div>
+
             <Button
               onClick={() => {
                 router.push('/tworld')
               }}
-              className="w-full mt-6"
-              style={{ backgroundColor: '#3617CE' }}
+              disabled={!isConsentChecked}
+              className="w-full mt-6 transition-all duration-300"
+              style={{
+                backgroundColor: isConsentChecked ? '#3617CE' : '#3617CE',
+                opacity: isConsentChecked ? 1 : 0.5,
+                cursor: isConsentChecked ? 'pointer' : 'not-allowed',
+                pointerEvents: isConsentChecked ? 'auto' : 'none'
+              }}
             >
               홈으로 돌아가기
             </Button>
