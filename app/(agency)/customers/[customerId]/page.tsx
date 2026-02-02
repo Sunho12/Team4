@@ -94,13 +94,13 @@ export default function CustomerDetailPage() {
       await loadCustomerData()
 
       // 상담 내역 로드
-      await loadConversations()
+      const convs = await loadConversations()
 
       // AI 분석 자동 실행
       await analyzeCustomer()
 
-      // 긴급 상담 브리핑 체크
-      checkUrgentConsultation()
+      // 긴급 상담 브리핑 체크 (로드된 상담 데이터를 직접 전달)
+      checkUrgentConsultation(convs)
     } catch (error) {
       console.error('Failed to load data:', error)
     } finally {
@@ -120,13 +120,15 @@ export default function CustomerDetailPage() {
     }
   }
 
-  const loadConversations = async () => {
+  const loadConversations = async (): Promise<Conversation[]> => {
     try {
       // Supabase에서 conversations와 messages 가져오기
       const response = await fetch(`/api/agency/customer/${customerId}/conversations`)
       if (response.ok) {
         const data = await response.json()
-        setConversations(data.conversations || [])
+        const convs = data.conversations || []
+        setConversations(convs)
+        return convs
       }
     } catch (error) {
       console.error('Failed to load conversations:', error)
@@ -177,23 +179,49 @@ export default function CustomerDetailPage() {
         }
       ]
       setConversations(dummyConversations)
+      return dummyConversations
     }
+    return []
   }
 
-  const checkUrgentConsultation = () => {
+  const checkUrgentConsultation = (convs: Conversation[]) => {
     // 최근 3일 이내 상담 내역 확인
-    const recentConversations = conversations.filter(conv => {
+    const recentConversations = convs.filter(conv => {
       const daysDiff = differenceInDays(new Date(), new Date(conv.started_at))
       return daysDiff <= 3
+    })
+
+    console.log('[긴급 상담 체크]', {
+      totalConversations: convs.length,
+      recentConversations: recentConversations.length,
+      dates: recentConversations.map(c => c.started_at)
     })
 
     if (recentConversations.length > 0) {
       // 가장 최근 상담의 요약을 가져옴
       const latest = recentConversations[0]
-      if (latest.summary) {
+
+      console.log('[긴급 상담 체크] 최신 상담 데이터:', {
+        hasSummary: !!latest.summary,
+        summary: latest.summary,
+        summaryText: latest.summary?.summary
+      })
+
+      if (latest.summary && latest.summary.summary) {
         setLatestConsultation(latest.summary.summary)
+      } else {
+        // 요약이 없는 경우 메시지 내용 기반 간단 요약
+        const userMessages = latest.messages?.filter(m => m.role === 'user') || []
+        if (userMessages.length > 0) {
+          setLatestConsultation(`고객 문의: ${userMessages[0].content.substring(0, 100)}...`)
+        } else {
+          setLatestConsultation('최근 상담 이력이 있으나 요약 정보가 생성 중입니다.')
+        }
       }
       setShowUrgentAlert(true)
+      console.log('[긴급 상담 알림] 팝업 표시됨')
+    } else {
+      console.log('[긴급 상담 알림] 최근 3일 이내 상담 없음')
     }
   }
 
@@ -649,19 +677,18 @@ export default function CustomerDetailPage() {
     <div className="min-h-screen p-6" style={{ backgroundColor: '#F8F9FA', fontFamily: "'SK Mobius', sans-serif" }}>
       {/* 긴급 상담 브리핑 팝업 */}
       {showUrgentAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" style={{ fontFamily: "'SK Mobius', sans-serif" }}>
           <div
-            className="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-shake"
-            style={{ fontFamily: "'SK Mobius', sans-serif" }}
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-shake border border-gray-200/50"
           >
-            {/* 헤더 */}
-            <div className="bg-gradient-to-r from-[#EA002C] to-[#FF4444] p-6 text-white">
+            {/* 헤더 - 대시보드 스타일 (T-Bridge Purple) */}
+            <div className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] p-6 text-white">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
                   <AlertCircle className="w-7 h-7" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">⚠️ 긴급 상담 브리핑</h2>
+                  <h2 className="text-2xl font-bold">긴급 상담 브리핑</h2>
                   <p className="text-sm text-white/90 mt-1">최근 3일 내 방문 고객</p>
                 </div>
               </div>
@@ -669,31 +696,31 @@ export default function CustomerDetailPage() {
 
             {/* 내용 */}
             <div className="p-6 space-y-4">
-              {/* 최신 상담 내역 */}
-              <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-5 border-2 border-orange-200">
+              {/* 최신 상담 내역 - 대시보드 카드 스타일 */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-5 border border-blue-200/50">
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-5 h-5 text-orange-600" />
-                  <h3 className="text-sm font-bold text-orange-900">최신 상담 내역</h3>
+                  <MessageSquare className="w-5 h-5 text-[#3617CE]" />
+                  <h3 className="text-sm font-semibold text-gray-900">최신 상담 내역</h3>
                 </div>
-                <p className="text-sm text-gray-800 leading-relaxed">
+                <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
                   {latestConsultation || '상담 내역을 확인할 수 없습니다.'}
                 </p>
               </div>
 
-              {/* 불만 지수 */}
-              <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-5 border-2 border-red-300">
+              {/* 불만 지수 - SK Red 유지 (경고 표시) */}
+              <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-5 border border-red-200/50">
                 <div className="flex items-center gap-2 mb-3">
                   <TrendingUp className="w-5 h-5 text-[#EA002C]" />
-                  <h3 className="text-sm font-bold text-red-900">현재 불만 지수</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">현재 불만 지수</h3>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
                   <div className="flex-1">
                     <div className="text-5xl font-bold text-[#EA002C]">
                       {insights.complaintRate}%
                     </div>
-                    <p className="text-xs text-red-700 mt-1">AI 분석 기반 불만 확률</p>
+                    <p className="text-xs text-gray-600 mt-1">AI 분석 기반 불만 확률</p>
                   </div>
-                  <div className="w-24 h-24">
+                  <div className="w-20 h-20">
                     <svg className="w-full h-full" viewBox="0 0 100 100">
                       <circle
                         cx="50"
@@ -701,7 +728,7 @@ export default function CustomerDetailPage() {
                         r="40"
                         fill="none"
                         stroke="#FFE5E5"
-                        strokeWidth="8"
+                        strokeWidth="10"
                       />
                       <circle
                         cx="50"
@@ -709,7 +736,7 @@ export default function CustomerDetailPage() {
                         r="40"
                         fill="none"
                         stroke="#EA002C"
-                        strokeWidth="8"
+                        strokeWidth="10"
                         strokeDasharray={`${2 * Math.PI * 40}`}
                         strokeDashoffset={`${2 * Math.PI * 40 * (1 - insights.complaintRate / 100)}`}
                         strokeLinecap="round"
@@ -721,25 +748,27 @@ export default function CustomerDetailPage() {
                 </div>
               </div>
 
-              {/* 주의사항 */}
-              <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+              {/* 주의사항 - 대시보드 스타일 */}
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200/50">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-yellow-800 leading-relaxed">
-                    <span className="font-bold">주의:</span> 최근 방문 이력이 있는 고객입니다. 이전 상담 내용을 숙지하고 신중하게 응대해주세요.
-                  </p>
+                  <AlertCircle className="w-5 h-5 text-[#3617CE] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-gray-900 mb-1">상담 전 확인사항</p>
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      최근 방문 이력이 있는 고객입니다. 이전 상담 내용을 숙지하고 신중하게 응대해주세요.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 하단 버튼 */}
+            {/* 하단 버튼 - T-Bridge 스타일 */}
             <div className="p-6 pt-0">
               <button
                 onClick={() => setShowUrgentAlert(false)}
-                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-all hover:scale-105 hover:shadow-xl"
+                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-all hover:scale-[1.02] hover:shadow-xl"
                 style={{
-                  background: 'linear-gradient(135deg, #EA002C 0%, #FF4444 100%)',
-                  fontFamily: "'SK Mobius', sans-serif"
+                  background: 'linear-gradient(135deg, #3617CE 0%, #5B3FE8 100%)'
                 }}
               >
                 확인 후 상담 시작
@@ -916,7 +945,7 @@ export default function CustomerDetailPage() {
         }
 
         @keyframes shake {
-          0%, 100% {
+          0% {
             transform: translateX(0) scale(0.95);
             opacity: 0;
           }
@@ -934,21 +963,31 @@ export default function CustomerDetailPage() {
           }
           40% {
             transform: translateX(5px) scale(1);
+            opacity: 1;
           }
           50% {
             transform: translateX(-3px) scale(1);
+            opacity: 1;
           }
           60% {
             transform: translateX(3px) scale(1);
+            opacity: 1;
           }
           70% {
             transform: translateX(-2px) scale(1);
+            opacity: 1;
           }
           80% {
             transform: translateX(2px) scale(1);
+            opacity: 1;
           }
           90% {
             transform: translateX(-1px) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(0) scale(1);
+            opacity: 1;
           }
         }
 
@@ -957,7 +996,7 @@ export default function CustomerDetailPage() {
         }
 
         .animate-shake {
-          animation: shake 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+          animation: shake 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
         }
       `}</style>
 
