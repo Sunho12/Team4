@@ -6,12 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
+import Image from 'next/image'
+import { User, Lock, AlertCircle } from 'lucide-react'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const registered = searchParams.get('registered')
-  const returnUrl = searchParams.get('returnUrl') || '/chat'
+  const mode = searchParams.get('mode') // 'agency' 또는 null
+  const returnUrl = searchParams.get('returnUrl') || (mode === 'agency' ? '/search' : '/chat')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +22,9 @@ function LoginForm() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // 대리점 모드인지 확인
+  const isAgencyMode = mode === 'agency'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,28 +47,34 @@ function LoginForm() {
       // Role에 따라 리다이렉트
       const userRole = data.user.role
 
-      if (returnUrl.includes('/search') || returnUrl.includes('/customers')) {
-        // 대리점 페이지로 가려는 경우
+      // 대리점 모드인 경우
+      if (isAgencyMode) {
         if (userRole === 'admin' || userRole === 'agency_staff') {
           router.push(returnUrl)
         } else {
           alert('권한이 없습니다. 대리점 직원만 접근할 수 있습니다.')
-          router.push('/chat')
-        }
-      } else if (returnUrl.includes('/chat') || returnUrl.includes('/customer')) {
-        // 챗봇 페이지로 가려는 경우
-        if (userRole === 'customer') {
-          router.push(returnUrl)
-        } else {
-          // admin이나 agency_staff도 챗봇 사용 가능하도록
-          router.push(returnUrl)
+          router.push('/')
         }
       } else {
-        // 기본 리다이렉트: role에 따라
-        if (userRole === 'admin' || userRole === 'agency_staff') {
-          router.push('/search')
+        // 고객 모드인 경우
+        if (returnUrl.includes('/search') || returnUrl.includes('/customers')) {
+          // 대리점 페이지로 가려는 경우
+          if (userRole === 'admin' || userRole === 'agency_staff') {
+            router.push(returnUrl)
+          } else {
+            alert('권한이 없습니다. 대리점 직원만 접근할 수 있습니다.')
+            router.push('/chat')
+          }
+        } else if (returnUrl.includes('/chat') || returnUrl.includes('/customer')) {
+          // 챗봇 페이지로 가려는 경우
+          router.push(returnUrl)
         } else {
-          router.push('/chat')
+          // 기본 리다이렉트: role에 따라
+          if (userRole === 'admin' || userRole === 'agency_staff') {
+            router.push('/search')
+          } else {
+            router.push('/chat')
+          }
         }
       }
 
@@ -74,6 +86,150 @@ function LoginForm() {
     }
   }
 
+  // 대리점 모드 전용 프리미엄 UI
+  if (isAgencyMode) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden"
+           style={{ backgroundColor: '#F8F9FA', letterSpacing: '-0.02em' }}>
+        {/* 추상적 유선형 그라데이션 배경 */}
+        <div className="absolute top-0 right-0 w-2/3 h-full opacity-20 pointer-events-none">
+          <div className="absolute top-1/4 right-0 w-96 h-96 bg-gradient-to-br from-[#EA002C] to-[#FF7A00] rounded-full blur-3xl transform translate-x-1/3"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-tl from-[#FF7A00] to-[#EA002C] rounded-full blur-3xl"></div>
+        </div>
+
+        {/* 글래스모피즘 로그인 카드 */}
+        <div className="relative w-full max-w-md">
+          <div
+            className="backdrop-blur-[25px] rounded-3xl shadow-2xl border border-white/15 p-10"
+            style={{
+              background: 'rgba(255, 255, 255, 0.85)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1)'
+            }}
+          >
+            {/* T-Bridge 로고 */}
+            <div className="flex justify-center mb-8">
+              <Image
+                src="/t-bridge-logo-main.png"
+                alt="T-Bridge"
+                width={200}
+                height={60}
+                priority
+                className="object-contain"
+              />
+            </div>
+
+            {/* 타이틀 및 설명 */}
+            <div className="text-center mb-8">
+              <h1 className="text-[20px] font-bold text-gray-900 mb-2">
+                스마트 AI 대시보드 접속
+              </h1>
+              <p className="text-[14px]" style={{ color: '#666' }}>
+                SKT 크루의 전문성이 데이터와 만나는 공간입니다.
+              </p>
+            </div>
+
+            {/* 성공 메시지 */}
+            {registered && (
+              <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-xl text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                회원가입이 완료되었습니다. 로그인해주세요.
+              </div>
+            )}
+
+            {/* 로그인 폼 */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* 이름 입력 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">직원 ID</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <Input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
+                    placeholder="이름을 입력하세요"
+                    className="pl-12 h-12 rounded-xl border-gray-300 focus:border-[#EA002C] focus:ring-2 focus:ring-[#EA002C]/20 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* 비밀번호 입력 */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">비밀번호</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <Input
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    required
+                    placeholder="비밀번호를 입력하세요"
+                    className="pl-12 h-12 rounded-xl border-gray-300 focus:border-[#EA002C] focus:ring-2 focus:ring-[#EA002C]/20 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* 에러 메시지 */}
+              {error && (
+                <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  <p className="text-sm text-red-600">{error}</p>
+                </div>
+              )}
+
+              {/* T-Blue 로그인 버튼 (Glossy 효과) */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-14 rounded-xl text-base font-bold text-white shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                style={{
+                  backgroundColor: '#3617CE',
+                  background: 'linear-gradient(135deg, #3617CE 0%, #5B3FE8 100%)'
+                }}
+              >
+                <span className="relative z-10">
+                  {loading ? '인증 중...' : '대시보드 입장'}
+                </span>
+                {/* Glossy 효과 */}
+                <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/10 to-white/20 pointer-events-none"></div>
+              </Button>
+
+              {/* 하단 메뉴 */}
+              <div className="flex items-center justify-between pt-4">
+                <Link href="#" className="text-xs text-gray-500 hover:text-[#EA002C] transition-colors">
+                  비밀번호를 잊으셨나요?
+                </Link>
+                <Link href="#" className="text-xs text-gray-500 hover:text-[#EA002C] transition-colors">
+                  시스템 권한 신청
+                </Link>
+              </div>
+
+              {/* 메인으로 돌아가기 */}
+              <div className="text-center pt-2">
+                <Link href="/" className="text-sm text-gray-600 hover:text-[#EA002C] transition-colors font-medium">
+                  ← 메인 페이지로 돌아가기
+                </Link>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* 하단 저작권 */}
+        <div className="absolute bottom-6 left-0 right-0 text-center">
+          <p className="text-xs text-gray-500">
+            © 2026 SK Telecom. All rights reserved.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // 일반 고객 모드 (기존 UI 유지)
   return (
     <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
       <Card className="w-full max-w-md shadow-lg">
