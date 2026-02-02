@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Search, User, Phone, Calendar, TrendingUp, MessageSquare, Home, FileText, Bell, Settings, Folder } from 'lucide-react'
+import { Search, User, Phone, Calendar, TrendingUp, MessageSquare, Home, FileText, Bell, Settings, Folder, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 
@@ -45,6 +45,16 @@ export default function SearchPage() {
       setAuthChecked(true)
     } catch (error) {
       router.push('/auth/login?mode=agency&returnUrl=/search')
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/signout', { method: 'POST' })
+      router.push('/auth/login?mode=agency')
+      router.refresh()
+    } catch (error) {
+      console.error('Logout failed:', error)
     }
   }
 
@@ -148,6 +158,18 @@ export default function SearchPage() {
             })}
           </ul>
         </nav>
+
+        {/* 로그아웃 버튼 */}
+        <div className="px-4 pb-4">
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-white/60 bg-transparent text-white hover:bg-white/15 hover:border-white transition-all duration-300 shadow-lg hover:shadow-xl"
+            style={{ fontFamily: "'SK Mobius', 'Apple SD Gothic Neo', sans-serif", fontSize: '12px', fontWeight: 600 }}
+          >
+            <LogOut className="w-4 h-4" />
+            <span>로그아웃</span>
+          </button>
+        </div>
 
         {/* 사용자 정보 */}
         <div className="p-4 border-t border-white/10">
