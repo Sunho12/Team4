@@ -278,259 +278,192 @@ export default function CustomerDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(8px)', fontFamily: "'SK Mobius', sans-serif" }}>
-        <div className="relative w-full max-w-5xl h-[500px] flex items-center justify-center">
-          {/* SVG 애니메이션 컨테이너 */}
-          <svg className="w-full h-full" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          backdropFilter: 'blur(10px)',
+          fontFamily: "'SK Mobius', -apple-system, BlinkMacSystemFont, sans-serif"
+        }}
+      >
+
+        <div className="flex flex-col items-center justify-center relative z-10">
+          {/* SVG 중앙의 작은 다리와 불꽃놀이 */}
+          <svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              {/* T-Bridge 시그니처 그라데이션 */}
+              {/* SK Red to Orange 그라데이션 */}
               <linearGradient id="bridgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#EA002C" />
                 <stop offset="50%" stopColor="#F54A2E" />
                 <stop offset="100%" stopColor="#FF7A00" />
               </linearGradient>
 
-              {/* 데이터 허브 그라데이션 */}
-              <radialGradient id="hubGradient">
-                <stop offset="0%" stopColor="#4B0082" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#6A0DAD" stopOpacity="0.3" />
-              </radialGradient>
-
-              {/* 고급 Glow 효과 */}
-              <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+              {/* 불꽃 필터 효과 */}
+              <filter id="fireworkGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                 <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-
-              {/* 강한 Glow 효과 */}
-              <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
-                <feGaussianBlur stdDeviation="10" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
                   <feMergeNode in="coloredBlur"/>
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
             </defs>
 
-            {/* 좌측 데이터 허브 (Online Data) */}
-            <g className="hub-left">
-              {/* 외부 레이어 */}
-              <circle cx="180" cy="250" r="70" fill="none" stroke="#4B0082" strokeWidth="2" opacity="0.2">
-                <animate attributeName="r" values="70;75;70" dur="3s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="180" cy="250" r="55" fill="none" stroke="#4B0082" strokeWidth="2" opacity="0.3">
-                <animate attributeName="r" values="55;60;55" dur="3s" repeatCount="indefinite" begin="0.5s" />
-                <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" repeatCount="indefinite" begin="0.5s" />
-              </circle>
-              {/* 중심 코어 */}
-              <circle cx="180" cy="250" r="40" fill="url(#hubGradient)" filter="url(#glow)">
-                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" />
-              </circle>
-              {/* 내부 펄스 */}
-              <circle cx="180" cy="250" r="20" fill="#6A0DAD" opacity="0.6">
-                <animate attributeName="r" values="20;30;20" dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
-              </circle>
+            {/* 불꽃놀이 배경 (Soft Fireworks) */}
+            <g id="fireworks">
+              {/* 불꽃 1 - 핑크 */}
+              <g opacity="0">
+                <circle cx="120" cy="80" r="3" fill="#FFB6C1" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;30;50" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="110" cy="70" r="2" fill="#FFD4E5" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;20;35" dur="2s" repeatCount="indefinite" begin="0.1s" />
+                  <animate attributeName="opacity" values="1;0.4;0" dur="2s" repeatCount="indefinite" begin="0.1s" />
+                </circle>
+                <circle cx="130" cy="75" r="2" fill="#FFC0CB" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;25;40" dur="2s" repeatCount="indefinite" begin="0.2s" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2s" repeatCount="indefinite" begin="0.2s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" />
+              </g>
+
+              {/* 불꽃 2 - 오렌지 */}
+              <g opacity="0">
+                <circle cx="280" cy="100" r="3" fill="#FFB88C" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;35;55" dur="2.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.5s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="270" cy="90" r="2" fill="#FFD4A3" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;25;40" dur="2.5s" repeatCount="indefinite" begin="0.15s" />
+                  <animate attributeName="opacity" values="1;0.4;0" dur="2.5s" repeatCount="indefinite" begin="0.15s" />
+                </circle>
+                <circle cx="290" cy="95" r="2" fill="#FFA500" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;28;45" dur="2.5s" repeatCount="indefinite" begin="0.25s" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.5s" repeatCount="indefinite" begin="0.25s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite" begin="0.8s" />
+              </g>
+
+              {/* 불꽃 3 - 연보라 */}
+              <g opacity="0">
+                <circle cx="200" cy="60" r="3" fill="#D8BFD8" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;32;48" dur="2.2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.2s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="190" cy="50" r="2" fill="#E6D5E6" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;22;38" dur="2.2s" repeatCount="indefinite" begin="0.12s" />
+                  <animate attributeName="opacity" values="1;0.4;0" dur="2.2s" repeatCount="indefinite" begin="0.12s" />
+                </circle>
+                <circle cx="210" cy="55" r="2" fill="#C8A2C8" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;26;42" dur="2.2s" repeatCount="indefinite" begin="0.18s" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.2s" repeatCount="indefinite" begin="0.18s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.2s" repeatCount="indefinite" begin="1.5s" />
+              </g>
+
+              {/* 불꽃 4 - 골드 */}
+              <g opacity="0">
+                <circle cx="320" cy="70" r="3" fill="#FFD700" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;28;46" dur="2.3s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.3s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="310" cy="65" r="2" fill="#FFE55C" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;20;36" dur="2.3s" repeatCount="indefinite" begin="0.1s" />
+                  <animate attributeName="opacity" values="1;0.4;0" dur="2.3s" repeatCount="indefinite" begin="0.1s" />
+                </circle>
+                <circle cx="330" cy="68" r="2" fill="#FFEB3B" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;24;40" dur="2.3s" repeatCount="indefinite" begin="0.2s" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.3s" repeatCount="indefinite" begin="0.2s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.3s" repeatCount="indefinite" begin="2.3s" />
+              </g>
+
+              {/* 불꽃 5 - 피치 */}
+              <g opacity="0">
+                <circle cx="80" cy="120" r="3" fill="#FFDAB9" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;30;50" dur="2.4s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.4s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="72" cy="110" r="2" fill="#FFE4C4" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;22;38" dur="2.4s" repeatCount="indefinite" begin="0.13s" />
+                  <animate attributeName="opacity" values="1;0.4;0" dur="2.4s" repeatCount="indefinite" begin="0.13s" />
+                </circle>
+                <circle cx="88" cy="115" r="2" fill="#FFCBA4" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;26;44" dur="2.4s" repeatCount="indefinite" begin="0.2s" />
+                  <animate attributeName="opacity" values="1;0.3;0" dur="2.4s" repeatCount="indefinite" begin="0.2s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.4s" repeatCount="indefinite" begin="3s" />
+              </g>
             </g>
 
-            {/* 우측 데이터 허브 (Offline Store) */}
-            <g className="hub-right">
-              {/* 외부 레이어 */}
-              <circle cx="820" cy="250" r="70" fill="none" stroke="#4B0082" strokeWidth="2" opacity="0.2">
-                <animate attributeName="r" values="70;75;70" dur="3s" repeatCount="indefinite" begin="0.3s" />
-                <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite" begin="0.3s" />
-              </circle>
-              <circle cx="820" cy="250" r="55" fill="none" stroke="#4B0082" strokeWidth="2" opacity="0.3">
-                <animate attributeName="r" values="55;60;55" dur="3s" repeatCount="indefinite" begin="0.8s" />
-                <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" repeatCount="indefinite" begin="0.8s" />
-              </circle>
-              {/* 중심 코어 */}
-              <circle cx="820" cy="250" r="40" fill="url(#hubGradient)" filter="url(#glow)">
-                <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" begin="0.3s" />
-              </circle>
-              {/* 내부 펄스 */}
-              <circle cx="820" cy="250" r="20" fill="#6A0DAD" opacity="0.6">
-                <animate attributeName="r" values="20;30;20" dur="2s" repeatCount="indefinite" begin="0.3s" />
-                <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" begin="0.3s" />
-              </circle>
+            {/* 중앙의 작은 다리 (The Minimal Bridge) */}
+            <g id="minimal-bridge">
+              {/* 다리 그림자 */}
+              <ellipse cx="200" cy="185" rx="90" ry="8" fill="#000000" opacity="0.08"/>
+
+              {/* 메인 아치 */}
+              <path
+                d="M 110 170 Q 200 130 290 170"
+                fill="none"
+                stroke="url(#bridgeGradient)"
+                strokeWidth="6"
+                strokeLinecap="round"
+                opacity="0.9"
+              />
+
+              {/* 내부 하이라이트 라인 */}
+              <path
+                d="M 115 168 Q 200 133 285 168"
+                fill="none"
+                stroke="#FFFFFF"
+                strokeWidth="2"
+                strokeLinecap="round"
+                opacity="0.5"
+              />
+
+              {/* 왼쪽 기둥 */}
+              <rect x="108" y="170" width="4" height="15" rx="2" fill="url(#bridgeGradient)" opacity="0.8"/>
+              <circle cx="110" cy="170" r="3" fill="url(#bridgeGradient)"/>
+
+              {/* 오른쪽 기둥 */}
+              <rect x="288" y="170" width="4" height="15" rx="2" fill="url(#bridgeGradient)" opacity="0.8"/>
+              <circle cx="290" cy="170" r="3" fill="url(#bridgeGradient)"/>
             </g>
 
-            {/* 에너지 연결 고속도로 (Energy Connection Highway) */}
-            <path
-              d="M 220 250 Q 500 200 780 250"
-              fill="none"
-              stroke="url(#bridgeGradient)"
-              strokeWidth="8"
-              strokeLinecap="round"
-              filter="url(#strongGlow)"
-              opacity="0.95"
-            >
-              <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite" />
-              <animate attributeName="stroke-width" values="8;12;8" dur="2s" repeatCount="indefinite" />
-            </path>
-            {/* 보조 에너지 레이어 */}
-            <path
-              d="M 220 250 Q 500 200 780 250"
-              fill="none"
-              stroke="#EA002C"
-              strokeWidth="3"
-              strokeLinecap="round"
-              opacity="0.4"
-            >
-              <animate attributeName="opacity" values="0.3;0.6;0.3" dur="1.5s" repeatCount="indefinite" />
-            </path>
-
-            {/* 고속 데이터 펄스 1 - SK Red 코어 */}
-            <g filter="url(#strongGlow)">
-              <ellipse rx="35" ry="5" fill="#EA002C" opacity="0.3">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;0.5;0.7;0" dur="2.5s" repeatCount="indefinite" />
-              </ellipse>
-              <circle r="8" fill="#EA002C">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite" />
-              </circle>
-            </g>
-
-            {/* 고속 데이터 펄스 2 - Orange 코어 */}
-            <g filter="url(#strongGlow)">
-              <ellipse rx="30" ry="4" fill="#FF7A00" opacity="0.3">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                  begin="0.5s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;0.5;0.7;0" dur="2.5s" repeatCount="indefinite" begin="0.5s" />
-              </ellipse>
-              <circle r="7" fill="#FF7A00">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                  begin="0.5s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite" begin="0.5s" />
-              </circle>
-            </g>
-
-            {/* 고속 데이터 펄스 3 - Pink-Red 코어 */}
-            <g filter="url(#strongGlow)">
-              <ellipse rx="28" ry="4" fill="#F54A2E" opacity="0.3">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                  begin="1s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;0.5;0.7;0" dur="2.5s" repeatCount="indefinite" begin="1s" />
-              </ellipse>
-              <circle r="6" fill="#F54A2E">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2.5s"
-                  repeatCount="indefinite"
-                  begin="1s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite" begin="1s" />
-              </circle>
-            </g>
-
-            {/* 고속 데이터 펄스 4 - 빠른 추적 Red */}
-            <g filter="url(#glow)">
-              <ellipse rx="40" ry="3" fill="#EA002C" opacity="0.2">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2s"
-                  repeatCount="indefinite"
-                  begin="1.5s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;0.4;0.6;0" dur="2s" repeatCount="indefinite" begin="1.5s" />
-              </ellipse>
-              <circle r="5" fill="#EA002C">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2s"
-                  repeatCount="indefinite"
-                  begin="1.5s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" begin="1.5s" />
-              </circle>
-            </g>
-
-            {/* 고속 데이터 펄스 5 - 빠른 추적 Orange */}
-            <g filter="url(#glow)">
-              <ellipse rx="38" ry="3" fill="#FF7A00" opacity="0.2">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2s"
-                  repeatCount="indefinite"
-                  begin="0.3s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;0.4;0.6;0" dur="2s" repeatCount="indefinite" begin="0.3s" />
-              </ellipse>
-              <circle r="5" fill="#FF7A00">
-                <animateMotion
-                  path="M 220 250 Q 500 200 780 250"
-                  dur="2s"
-                  repeatCount="indefinite"
-                  begin="0.3s"
-                  calcMode="spline"
-                  keySplines="0.42 0 0.58 1"
-                />
-                <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" begin="0.3s" />
-              </circle>
-            </g>
           </svg>
 
-          {/* 텍스트 */}
-          <div className="absolute bottom-0 left-0 right-0 text-center pb-8">
-            <p className="text-[15px] font-medium text-[#444] mb-2">
-              T-Bridge가 실시간으로 데이터를 <span style={{ color: '#EA002C', fontWeight: '600' }}>연결</span>하고 있습니다.
-            </p>
-            <p className="text-[13px] font-normal text-[#666]">
-              잠시만 기다려 주세요...
+          {/* 타이포그래피 - Breathing 애니메이션 */}
+          <div className="mt-12 text-center px-4">
+            <p className="text-[17px] font-normal breathing-text" style={{ letterSpacing: '0.03em', lineHeight: '1.6' }}>
+              <span>T-Bridge가 실시간으로 데이터를 </span>
+              <span
+                style={{
+                  color: '#EA002C',
+                  fontWeight: 600
+                }}
+              >
+                연결
+              </span>
+              <span>하고 있습니다.</span>
             </p>
           </div>
-        </div>
 
-        <style jsx>{`
-          /* 데이터 흐름 애니메이션 */
-          .hub-left, .hub-right {
-            transform-origin: center;
-          }
-        `}</style>
+          <style jsx>{`
+            @keyframes breathing {
+              0%, 100% {
+                opacity: 0.7;
+              }
+              50% {
+                opacity: 1;
+              }
+            }
+
+            .breathing-text {
+              animation: breathing 3s ease-in-out infinite;
+              color: #333333;
+            }
+          `}</style>
+        </div>
       </div>
     )
   }
