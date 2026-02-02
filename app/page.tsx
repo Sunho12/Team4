@@ -24,7 +24,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
           {/* 고객사이트: T-Bridge 상담 챗봇 */}
           <Link
-            href="/chat"
+            href="/tworld"
             className="group rounded-xl border-2 border-red-200 dark:border-red-800 bg-white dark:bg-gray-800 px-8 py-10 transition-all hover:border-red-400 hover:shadow-xl hover:scale-105"
           >
             <div className="flex flex-col items-center text-center">
