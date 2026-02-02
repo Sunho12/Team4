@@ -4,6 +4,7 @@ export interface CustomerSearchResult {
   id: string
   customer_name: string | null
   customer_phone: string | null
+  customer_birth?: string | null
   created_at: string
   source: 'session' | 'profile'
   user_id?: string
@@ -38,6 +39,7 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
       id,
       full_name,
       phone_number,
+      birthdate,
       created_at
     `)
     .or(`full_name.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%`)
@@ -55,6 +57,7 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     id: profile.id,
     customer_name: profile.full_name,
     customer_phone: profile.phone_number,
+    customer_birth: profile.birthdate,
     created_at: profile.created_at,
     source: 'profile' as const,
     user_id: profile.id,
