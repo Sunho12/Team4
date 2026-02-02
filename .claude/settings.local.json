@@ -5,5 +5,9 @@
       "Bash(npm install)",
       "Bash(npm run dev:*)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
 }

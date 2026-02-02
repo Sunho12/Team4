@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T world | SK Telecom</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <style>
+        /* T world 공식 컬러 정의 */
+        :root {
+            --t-blue: #3617CE;
+            --t-red: #FF404E;
+            --bg-gray: #F9F9FB;
+            --text-black: #111111;
+            --text-gray: #666666;
+            --border-light: #EEEEEE;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+        body { background-color: var(--bg-gray); color: var(--text-black); letter-spacing: -0.5px; }
+        
+        /* Header */
+        header { background: #fff; border-bottom: 1px solid var(--border-light); height: 72px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .header-inner { width: 100%; max-width: 1080px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        .logo { font-size: 28px; font-weight: 800; color: var(--t-blue); cursor: pointer; }
+        .nav { display: flex; gap: 40px; }
+        .nav a { text-decoration: none; color: var(--text-black); font-size: 17px; font-weight: 600; }
+        .nav a:hover { color: var(--t-blue); }
+        .user-menu { font-size: 14px; color: var(--text-gray); }
+
+        /* Main Section */
+        .container { max-width: 1080px; margin: 40px auto; padding: 0 20px; }
+        .section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; }
+        .section-header h2 { font-size: 24px; font-weight: 700; }
+        .section-header .more { font-size: 14px; color: var(--text-gray); text-decoration: none; }
+
+        /* Quick Menu Grid */
+        .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 48px; }
+        .quick-card { background: #fff; padding: 32px 20px; border-radius: 20px; text-align: center; transition: all 0.3s ease; border: 1px solid transparent; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .quick-card:hover { border-color: var(--t-blue); transform: translateY(-4px); box-shadow: 0 8px 20px rgba(54,23,206,0.1); }
+        .quick-card .icon-box { width: 56px; height: 56px; background: #F2F0FF; border-radius: 18px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+        .quick-card span { display: block; font-weight: 600; font-size: 16px; }
+
+        /* Banner Section */
+        .banner { background: var(--t-blue); border-radius: 24px; padding: 40px; color: #fff; margin-bottom: 48px; position: relative; overflow: hidden; }
+        .banner h3 { font-size: 28px; margin-bottom: 12px; font-weight: 700; line-height: 1.3; }
+        .banner p { font-size: 16px; opacity: 0.9; }
+        .banner .btn-white { display: inline-block; margin-top: 24px; background: #fff; color: var(--t-blue); padding: 12px 24px; border-radius: 30px; font-weight: 700; text-decoration: none; font-size: 15px; }
+
+        /* Info Grid */
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .info-card { background: #fff; border-radius: 20px; padding: 24px; display: flex; align-items: center; gap: 20px; cursor: pointer; border: 1px solid var(--border-light); }
+        .info-card:hover { border-color: #ddd; }
+        .info-card .img-placeholder { width: 80px; height: 80px; background: #f0f0f0; border-radius: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+        .info-text .title { font-weight: 700; font-size: 18px; margin-bottom: 6px; }
+        .info-text .desc { font-size: 14px; color: var(--text-gray); line-height: 1.4; }
+
+        /* Footer */
+        footer { background: #fff; border-top: 1px solid var(--border-light); padding: 60px 0; margin-top: 80px; color: var(--text-gray); font-size: 13px; }
+        .footer-inner { max-width: 1080px; margin: 0 auto; padding: 0 20px; line-height: 1.8; }
+        .footer-logo { font-size: 20px; font-weight: 800; color: #ccc; margin-bottom: 20px; }
+
+        /* 3D Character */
+        .character-container { position: fixed; bottom: 20px; right: 20px; width: 250px; height: 250px; z-index: 200; cursor: pointer; }
+        model-viewer { width: 100%; height: 100%; display: none; }
+        model-viewer.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-inner">
+            <div class="logo">T world</div>
+            <nav class="nav">
+                <a href="#">T 다이렉트샵</a>
+                <a href="#">MY</a>
+                <a href="#">혜택</a>
+                <a href="#">메뉴</a>
+            </nav>
+            <div class="user-menu">로그인 | 회원가입 | 검색</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="section-header">
+            <h2>자주 찾는 메뉴</h2>
+        </div>
+        <div class="quick-grid">
+            <div class="quick-card">
+                <div class="icon-box">📄</div>
+                <span>요금제 변경</span>
+            </div>
+            <div class="quick-card">
+                <div class="icon-box">📊</div>
+                <span>실시간 잔여량</span>
+            </div>
+            <div class="quick-card">
+                <div class="icon-box">💳</div>
+                <span>요금 납부</span>
+            </div>
+            <div class="quick-card">
+                <div class="icon-box">🎁</div>
+                <span>멤버십 혜택</span>
+            </div>
+        </div>
+
+        <div class="banner">
+            <h3>데이터가 모자랄 땐?<br>T끼리 데이터 선물하기</h3>
+            <p>가족, 친구에게 마음을 전해보세요.</p>
+            <a href="#" class="btn-white">선물하러 가기</a>
+        </div>
+
+        <div class="section-header">
+            <h2>이럴 땐 이렇게 해 보세요</h2>
+            <a href="#" class="more">전체보기 ></a>
+        </div>
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="img-placeholder">🛡️</div>
+                <div class="info-text">
+                    <div class="title">스미싱 대처 방법</div>
+                    <div class="desc">의심스러운 문자를 받았을 때<br>안전하게 대처하는 가이드를 확인하세요.</div>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="img-placeholder">📱</div>
+                <div class="info-text">
+                    <div class="title">중고폰 판매(T 안심보상)</div>
+                    <div class="desc">사용하던 폰, 가장 쉽고 안전하게<br>보상받고 판매하는 방법</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-logo">T world</div>
+            <p>서울특별시 중구 을지로 65(을지로2가) SK텔레콤빌딩 | 대표이사/사장 유영상</p>
+            <p>사업자등록번호 104-81-37225 | 고객센터 국번없이 114(무료) 또는 080-011-6000</p>
+            <p style="margin-top: 15px;">COPYRIGHT © SK TELECOM CO., LTD. ALL RIGHTS RESERVED.</p>
+        </div>
+    </footer>
+
+    <!-- 3D Character Models -->
+    <div class="character-container" id="characterContainer">
+        <model-viewer
+            id="modelBye"
+            src="models/model_bye.glb"
+            camera-orbit="0deg 75deg 105%"
+            animation-name="*"
+            autoplay
+            class="active">
+        </model-viewer>
+
+        <model-viewer
+            id="modelStretching"
+            src="models/model_stretching.glb"
+            camera-orbit="0deg 75deg 105%"
+            animation-name="*">
+        </model-viewer>
+
+        <model-viewer
+            id="modelCheers"
+            src="models/model_cheers.glb"
+            camera-orbit="0deg 75deg 105%"
+            animation-name="*">
+        </model-viewer>
+    </div>
+
+    <script>
+        const modelBye = document.getElementById('modelBye');
+        const modelStretching = document.getElementById('modelStretching');
+        const modelCheers = document.getElementById('modelCheers');
+        const container = document.getElementById('characterContainer');
+
+        let currentState = 'bye'; // 현재 상태: bye, stretching, cheers
+
+        // 모델 전환 함수
+        function switchModel(modelToShow) {
+            [modelBye, modelStretching, modelCheers].forEach(model => {
+                model.classList.remove('active');
+                model.pause();
+            });
+            modelToShow.classList.add('active');
+        }
+
+        // 모델 로드 완료 후 이벤트 리스너 등록
+        modelBye.addEventListener('load', () => {
+            console.log('Bye model loaded');
+            const duration = modelBye.duration || 3; // 애니메이션 길이 (기본 3초)
+            console.log('Bye animation duration:', duration);
+
+            // 애니메이션 종료 시간 후 stretching으로 전환
+            setTimeout(() => {
+                console.log('Switching to stretching');
+                currentState = 'stretching';
+                switchModel(modelStretching);
+                modelStretching.setAttribute('animation-name', '*');
+                modelStretching.loop = true;
+                modelStretching.play();
+            }, duration * 1000); // duration은 초 단위
+        });
+
+        // 캐릭터 클릭 시 cheers 애니메이션 재생
+        container.addEventListener('click', () => {
+            console.log('Character clicked, current state:', currentState);
+            if (currentState === 'stretching') {
+                currentState = 'cheers';
+                switchModel(modelCheers);
+                modelCheers.loop = false;
+                modelCheers.play();
+
+                // cheers 애니메이션 길이 확인 후 stretching으로 복귀
+                const cheersDuration = modelCheers.duration || 3;
+                console.log('Cheers animation duration:', cheersDuration);
+                setTimeout(() => {
+                    console.log('Switching back to stretching');
+                    currentState = 'stretching';
+                    switchModel(modelStretching);
+                    modelStretching.loop = true;
+                    modelStretching.play();
+                }, cheersDuration * 1000);
+            }
+        });
+    </script>
+
+</body>
+</html>
