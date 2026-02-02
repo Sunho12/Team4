@@ -109,10 +109,32 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
           <div
             key={message.id}
             className={cn(
-              'flex',
+              'flex items-start gap-2',
               message.role === 'user' ? 'justify-end' : 'justify-start'
             )}
           >
+            {/* Assistant 캐릭터 */}
+            {message.role === 'assistant' && (
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden"
+                style={{ marginBottom: '4px' }}
+                suppressHydrationWarning
+                dangerouslySetInnerHTML={{
+                  __html: `
+                    <model-viewer
+                      src="/Tworld/models/model_adot.glb"
+                      camera-orbit="0deg 75deg 105%"
+                      animation-name="*"
+                      autoplay
+                      loop
+                      style="width: 100%; height: 100%; background-color: transparent;">
+                    </model-viewer>
+                  `
+                }}
+              />
+            )}
+
+            {/* 메시지 버블 */}
             <div
               className={cn(
                 'max-w-[80%] rounded-2xl px-4 py-3',
@@ -138,7 +160,27 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
       })}
 
       {isLoading && (
-        <div className="flex justify-start">
+        <div className="flex justify-start items-start gap-2">
+          {/* 로딩 중 캐릭터 */}
+          <div
+            className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden"
+            style={{ marginBottom: '4px' }}
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{
+              __html: `
+                <model-viewer
+                  src="/Tworld/models/model_adot.glb"
+                  camera-orbit="0deg 75deg 105%"
+                  animation-name="*"
+                  autoplay
+                  loop
+                  style="width: 100%; height: 100%; background-color: transparent;">
+                </model-viewer>
+              `
+            }}
+          />
+
+          {/* 로딩 버블 */}
           <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-white shadow-md border border-gray-200">
             <div className="flex space-x-2">
               <div className="w-2 h-2 rounded-full animate-bounce" style={{ backgroundColor: '#6B5FE5' }}></div>
