@@ -3,10 +3,10 @@ import { getCustomerDetail } from '@/lib/services/customerService'
 
 export async function GET(
   request: Request,
-  { params }: { params: { customerId: string } }
+  { params }: { params: Promise<{ customerId: string }> }
 ) {
   try {
-    const customerId = params.customerId
+    const { customerId } = await params
 
     const data = await getCustomerDetail(customerId)
 

@@ -17,6 +17,7 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [summary, setSummary] = useState<any>(null)
+  const [predictions, setPredictions] = useState<any>(null)
 
   useEffect(() => {
     if (!conversationId) {
@@ -112,6 +113,7 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
       if (response.ok) {
         const data = await response.json()
         setSummary(data.summary)
+        setPredictions(data.predictions)
       }
     } catch (error) {
       console.error('Failed to end conversation:', error)
@@ -144,9 +146,38 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
                 ))}
               </div>
             </div>
+
+            {/* Purchase Predictions */}
+            {predictions && predictions.length > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <h3 className="font-semibold mb-2">구매 의향 분석</h3>
+                <div className="space-y-3">
+                  {predictions.map((pred: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-blue-50 rounded-md">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium">
+                          {pred.prediction_type}
+                        </span>
+                        <span className="px-2 py-1 bg-white rounded text-xs">
+                          확률: {(pred.probability_score * 100).toFixed(0)}%
+                        </span>
+                        <span className="px-2 py-1 bg-white rounded text-xs">
+                          신뢰도: {pred.confidence === 'high' ? '높음' : pred.confidence === 'medium' ? '중간' : '낮음'}
+                        </span>
+                      </div>
+                      {pred.reasoning && (
+                        <p className="text-sm text-muted-foreground">{pred.reasoning}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <Button
               onClick={() => {
                 setSummary(null)
+                setPredictions(null)
                 setMessages([])
                 onConversationCreated('')
                 createConversation()
