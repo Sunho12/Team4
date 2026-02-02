@@ -1,18 +1,20 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 
-export default function SignUpPage() {
+function UserLoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const registered = searchParams.get('registered')
+
   const [formData, setFormData] = useState({
     name: '',
     password: '',
-    phoneNumber: '',
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -23,7 +25,7 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -35,7 +37,17 @@ export default function SignUpPage() {
         throw new Error(data.error)
       }
 
-      router.push('/user/login?registered=true')
+      // 고객만 허용
+      const userRole = data.user.role
+      if (userRole !== 'customer') {
+        alert('고객 전용 로그인입니다. 대리점 직원은 /search/login을 이용해주세요.')
+        setLoading(false)
+        return
+      }
+
+      // 챗봇으로 이동
+      router.push('/chat')
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -47,45 +59,39 @@ export default function SignUpPage() {
     <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl">회원가입</CardTitle>
+          <CardTitle className="text-2xl">고객 로그인</CardTitle>
           <CardDescription>
-            T-world 챗봇 서비스에 가입하세요
+            T-world 챗봇 서비스 로그인
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {registered && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm">
+              회원가입이 완료되었습니다. 로그인해주세요.
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-sm font-medium">이름 *</label>
+              <label className="text-sm font-medium">이름</label>
               <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                placeholder="홍길동"
+                placeholder="이름을 입력하세요"
                 className="mt-1"
               />
             </div>
 
             <div>
-              <label className="text-sm font-medium">비밀번호 *</label>
+              <label className="text-sm font-medium">비밀번호</label>
               <Input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
-                placeholder="비밀번호"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">전화번호 *</label>
-              <Input
-                type="tel"
-                value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                required
-                placeholder="010-1234-5678"
+                placeholder="비밀번호를 입력하세요"
                 className="mt-1"
               />
             </div>
@@ -97,18 +103,37 @@ export default function SignUpPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? '처리 중...' : '회원가입'}
+              {loading ? '로그인 중...' : '로그인'}
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">
-              이미 계정이 있으신가요?{' '}
-              <Link href="/user/login" className="text-primary hover:underline font-medium">
-                로그인
+              계정이 없으신가요?{' '}
+              <Link href="/auth/signup" className="text-primary hover:underline font-medium">
+                회원가입
+              </Link>
+            </div>
+
+            <div className="text-center text-sm text-muted-foreground pt-2 border-t">
+              대리점 직원이신가요?{' '}
+              <Link href="/search/login" className="text-primary hover:underline font-medium">
+                대리점 로그인
               </Link>
             </div>
           </form>
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function UserLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">로딩 중...</p>
+      </div>
+    }>
+      <UserLoginForm />
+    </Suspense>
   )
 }
