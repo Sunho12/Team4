@@ -4,6 +4,15 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState, useRef } from 'react'
 
+// Declare model-viewer custom element for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'model-viewer': any
+    }
+  }
+}
+
 type ModalType = 'usage' | 'plan' | 'payment' | 'membership' | 'gift' | 'smishing' | 'usedphone' | 'search' | null
 
 export default function TworldPage() {
