@@ -11,29 +11,61 @@ export async function GET(
 
     console.log('[Conversations API] Customer ID:', customerId)
 
-    // 1. Get customer_sessions for this profile (user_id)
-    const { data: sessions, error: sessionError } = await supabase
+    // 1. First, try to find if customerId is a session_id
+    const { data: directSession } = await supabase
       .from('customer_sessions')
-      .select('id')
-      .eq('user_id', customerId)
+      .select('id, user_id')
+      .eq('id', customerId)
+      .single()
 
-    console.log('[Conversations API] Sessions found:', sessions?.length || 0)
+    let sessionIds: string[] = []
 
-    if (sessionError) {
-      console.error('[Conversations API] Error fetching customer sessions:', sessionError)
-      return NextResponse.json(
-        { error: 'Failed to fetch customer sessions', conversations: [] },
-        { status: 500 }
-      )
+    if (directSession) {
+      // customerId is a session_id
+      console.log('[Conversations API] customerId is a session_id')
+      sessionIds = [directSession.id]
+
+      // Also get other sessions for this user if they have a user_id
+      if (directSession.user_id) {
+        const { data: userSessions } = await supabase
+          .from('customer_sessions')
+          .select('id')
+          .eq('user_id', directSession.user_id)
+
+        if (userSessions) {
+          sessionIds = [...new Set([...sessionIds, ...userSessions.map(s => s.id)])]
+        }
+      }
+    } else {
+      // customerId might be a user_id (profile id)
+      console.log('[Conversations API] customerId might be a user_id')
+      const { data: sessions, error: sessionError } = await supabase
+        .from('customer_sessions')
+        .select('id')
+        .eq('user_id', customerId)
+
+      if (sessionError) {
+        console.error('[Conversations API] Error fetching customer sessions:', sessionError)
+        return NextResponse.json(
+          { error: 'Failed to fetch customer sessions', conversations: [] },
+          { status: 500 }
+        )
+      }
+
+      if (!sessions || sessions.length === 0) {
+        console.log('[Conversations API] No sessions found for customer')
+        return NextResponse.json({ conversations: [] })
+      }
+
+      sessionIds = sessions.map(s => s.id)
     }
 
-    if (!sessions || sessions.length === 0) {
-      console.log('[Conversations API] No sessions found for customer')
+    console.log('[Conversations API] Session IDs:', sessionIds)
+
+    if (sessionIds.length === 0) {
+      console.log('[Conversations API] No sessions found')
       return NextResponse.json({ conversations: [] })
     }
-
-    const sessionIds = sessions.map(s => s.id)
-    console.log('[Conversations API] Session IDs:', sessionIds)
 
     // 2. Get conversations for these sessions
     const { data: conversations, error: convError } = await supabase

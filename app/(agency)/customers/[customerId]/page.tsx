@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { format, differenceInDays } from 'date-fns'
-import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle } from 'lucide-react'
+import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag } from 'lucide-react'
 import Link from 'next/link'
 
 interface Message {
@@ -25,6 +25,7 @@ interface Conversation {
   summary?: {
     summary: string
     category: string
+    keywords?: string[]
     sentiment: 'positive' | 'neutral' | 'negative'
   }
 }
@@ -49,6 +50,7 @@ export default function CustomerDetailPage() {
   const [authChecked, setAuthChecked] = useState(false)
   const [showUrgentAlert, setShowUrgentAlert] = useState(false)
   const [latestConsultation, setLatestConsultation] = useState<string>('')
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
 
   useEffect(() => {
     checkAuth()
@@ -655,6 +657,162 @@ export default function CustomerDetailPage() {
         </div>
       )}
 
+      {/* 상담 상세 정보 모달 */}
+      {selectedConversation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div
+            className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
+            style={{ fontFamily: "'SK Mobius', sans-serif" }}
+          >
+            {/* 헤더 */}
+            <div className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <MessageSquare className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">상담 상세 내역</h2>
+                    <p className="text-sm text-white/90 mt-1">
+                      {format(new Date(selectedConversation.started_at), 'yyyy년 MM월 dd일 HH:mm')}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedConversation(null)}
+                  className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* 카테고리 및 감정 */}
+              {selectedConversation.summary && (
+                <div className="flex items-center gap-3 mt-4">
+                  <Badge variant="outline" className="bg-white/20 text-white border-white/40">
+                    {selectedConversation.summary.category}
+                  </Badge>
+                  <Badge className={`${getSentimentColor(selectedConversation.summary.sentiment)} text-white`}>
+                    {getSentimentText(selectedConversation.summary.sentiment)}
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            {/* 카드뉴스 스타일 내용 */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)] space-y-6">
+              {selectedConversation.summary ? (
+                <>
+                  {/* 카드 1: 상담 카테고리 및 감정 */}
+                  <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-3xl p-8 border-2 border-purple-200 shadow-lg">
+                    <div className="text-center mb-6">
+                      <div className="inline-block p-4 bg-white rounded-full shadow-md mb-4">
+                        <MessageSquare className="w-12 h-12 text-[#3617CE]" />
+                      </div>
+                      <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                        {selectedConversation.summary.category}
+                      </h3>
+                      <div className="flex items-center justify-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          selectedConversation.summary.sentiment === 'positive' ? 'bg-green-500' :
+                          selectedConversation.summary.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-500'
+                        }`}></div>
+                        <span className="text-lg font-semibold text-gray-700">
+                          {getSentimentText(selectedConversation.summary.sentiment)} 상담
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 카드 2: 상담 요약 */}
+                  <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-3xl p-8 border-2 border-blue-200 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-3 bg-white rounded-xl shadow-md">
+                        <MessageSquare className="w-8 h-8 text-[#3617CE]" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-900">상담 요약</h3>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur rounded-2xl p-6 shadow-inner">
+                      <p className="text-base text-gray-800 leading-relaxed" style={{ lineHeight: '2' }}>
+                        {selectedConversation.summary.summary}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 카드 3: 키워드 */}
+                  {selectedConversation.summary.keywords && selectedConversation.summary.keywords.length > 0 && (
+                    <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-3xl p-8 border-2 border-orange-200 shadow-lg">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-3 bg-white rounded-xl shadow-md">
+                          <Tag className="w-8 h-8 text-[#FF7A00]" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-gray-900">핵심 키워드</h3>
+                      </div>
+                      <div className="flex flex-wrap gap-3 justify-center">
+                        {selectedConversation.summary.keywords.map((keyword, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-white rounded-2xl px-6 py-4 shadow-md border-2 border-orange-200 hover:scale-105 transition-transform"
+                          >
+                            <span className="text-lg font-bold bg-gradient-to-r from-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
+                              #{keyword}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 카드 4: 상담 통계 */}
+                  <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-3xl p-8 border-2 border-green-200 shadow-lg">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
+                        <p className="text-sm font-semibold text-gray-600 mb-2">상담 시작</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          {format(new Date(selectedConversation.started_at), 'HH:mm')}
+                        </p>
+                      </div>
+                      <div className="text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
+                        <p className="text-sm font-semibold text-gray-600 mb-2">상담 종료</p>
+                        <p className="text-lg font-bold text-gray-900">
+                          {selectedConversation.ended_at
+                            ? format(new Date(selectedConversation.ended_at), 'HH:mm')
+                            : '진행중'}
+                        </p>
+                      </div>
+                      <div className="col-span-2 text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
+                        <p className="text-sm font-semibold text-gray-600 mb-2">총 메시지</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+                          {selectedConversation.messages.length}개
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">요약 정보가 없습니다.</p>
+                </div>
+              )}
+            </div>
+
+            {/* 하단 버튼 */}
+            <div className="p-6 pt-0 border-t">
+              <button
+                onClick={() => setSelectedConversation(null)}
+                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-all hover:scale-105 hover:shadow-xl"
+                style={{
+                  background: 'linear-gradient(135deg, #3617CE 0%, #5B3FE8 100%)',
+                  fontFamily: "'SK Mobius', sans-serif"
+                }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         @keyframes fadeIn {
           from {
@@ -743,7 +901,7 @@ export default function CustomerDetailPage() {
                 <Calendar className="w-5 h-5 text-blue-600" />
                 <p className="text-sm font-semibold text-blue-900">생년월일</p>
               </div>
-              <p className="text-base font-bold text-blue-900">1985.03.15</p>
+              <p className="text-base font-bold text-blue-900">{customer.birthdate || '정보 없음'}</p>
             </div>
 
             <div className="bg-gradient-to-br from-pink-50 to-pink-100/50 rounded-2xl p-4 border border-pink-200/50">
@@ -760,8 +918,13 @@ export default function CustomerDetailPage() {
                 <p className="text-sm font-semibold text-green-900">결합상품</p>
               </div>
               <div className="flex gap-2">
-                <Badge className="bg-green-600 hover:bg-green-700 text-xs">유무선</Badge>
-                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-xs">가족</Badge>
+                {customer.bundle_types && customer.bundle_types.length > 0 ? (
+                  customer.bundle_types.map((type: string, idx: number) => (
+                    <Badge key={idx} className="bg-green-600 hover:bg-green-700 text-xs">{type}</Badge>
+                  ))
+                ) : (
+                  <span className="text-sm text-gray-600">없음</span>
+                )}
               </div>
             </div>
 
@@ -770,8 +933,12 @@ export default function CustomerDetailPage() {
                 <Smartphone className="w-5 h-5 text-purple-600" />
                 <p className="text-sm font-semibold text-purple-900">단말기</p>
               </div>
-              <p className="text-sm font-bold text-purple-900">Galaxy S24 Ultra</p>
-              <Badge className="mt-1 bg-purple-600 hover:bg-purple-700 text-xs">잔여 12개월</Badge>
+              <p className="text-sm font-bold text-purple-900">{customer.device_model || '정보 없음'}</p>
+              {customer.device_remaining_months && (
+                <Badge className="mt-1 bg-purple-600 hover:bg-purple-700 text-xs">
+                  잔여 {customer.device_remaining_months}개월
+                </Badge>
+              )}
             </div>
 
             <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl p-4 border border-orange-200/50">
@@ -779,8 +946,10 @@ export default function CustomerDetailPage() {
                 <CreditCard className="w-5 h-5 text-orange-600" />
                 <p className="text-sm font-semibold text-orange-900">현재 요금제</p>
               </div>
-              <p className="text-base font-bold text-orange-900">5G 프리미어 에센셜</p>
-              <p className="text-xs text-orange-700 mt-1">월 75,000원</p>
+              <p className="text-base font-bold text-orange-900">{customer.plan_name || '정보 없음'}</p>
+              {customer.plan_price && (
+                <p className="text-xs text-orange-700 mt-1">월 {customer.plan_price.toLocaleString()}원</p>
+              )}
             </div>
           </div>
         </div>
@@ -801,9 +970,10 @@ export default function CustomerDetailPage() {
                   return (
                     <div
                       key={conv.id}
+                      onClick={() => setSelectedConversation(conv)}
                       className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 ${
                         isRecent ? 'border-2 border-[#EA002C]' : 'border border-gray-200'
-                      } transition-all hover:shadow-md`}
+                      } transition-all hover:shadow-md cursor-pointer hover:scale-[1.02]`}
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-sm text-gray-600 font-medium">

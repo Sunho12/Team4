@@ -83,7 +83,7 @@ export default function TworldPage() {
       idleTimerRef.current = setTimeout(() => {
         console.log('[DEBUG] 5 seconds passed, showing assistant')
         setShowAssistant(true)
-      }, 5000) // 5초
+      }, 2500) // 5초
     }
 
     // 초기 타이머 시작
@@ -111,6 +111,15 @@ export default function TworldPage() {
   useEffect(() => {
     console.log('[DEBUG] showAssistant changed to:', showAssistant)
   }, [showAssistant])
+
+  // 배너 자동 슬라이드 (4.5초마다)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBanner(prev => prev === 2 ? 1 : 2)
+    }, 4500)
+
+    return () => clearInterval(interval)
+  }, [])
 
   // 모달 닫기
   const closeModal = () => setActiveModal(null)
@@ -1067,12 +1076,6 @@ export default function TworldPage() {
             priority
             style={{ objectFit: 'cover' }}
           />
-          <button className="banner-arrow left" onClick={prevBanner}>
-            ‹
-          </button>
-          <button className="banner-arrow right" onClick={nextBanner}>
-            ›
-          </button>
           <div className="banner-dots">
             <div
               className={`banner-dot ${currentBanner === 1 ? 'active' : ''}`}

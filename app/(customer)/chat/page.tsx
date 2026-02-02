@@ -16,7 +16,17 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // model-viewer 스크립트 동적 로드
+    const script = document.createElement('script')
+    script.type = 'module'
+    script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.1/model-viewer.min.js'
+    document.head.appendChild(script)
+
     checkAuthAndInitialize()
+
+    return () => {
+      document.head.removeChild(script)
+    }
   }, [])
 
   const checkAuthAndInitialize = async () => {
