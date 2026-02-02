@@ -795,6 +795,17 @@ export default function SearchPage() {
           )}
         </div>
 
+        {/* 검색 결과 없음 - 검색 바로 아래에 표시 */}
+        {results.length === 0 && query && !isLoading && (
+          <div className="backdrop-blur-sm bg-white/90 rounded-2xl md:rounded-3xl shadow-lg border border-gray-200/50 p-8 md:p-12 text-center mb-4 md:mb-6">
+            <div className="w-16 md:w-20 h-16 md:h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+              <Search className="w-8 md:w-10 h-8 md:h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg md:text-2xl font-bold text-gray-900 mb-2">검색 결과가 없습니다</h3>
+            <p className="text-sm md:text-base text-gray-600">다른 검색어를 입력해보세요</p>
+          </div>
+        )}
+
         {/* 검색 결과 리스트 (테이블) */}
         {results.length > 0 && !showDetail && (
           <div
@@ -1067,17 +1078,6 @@ export default function SearchPage() {
                 )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* 검색 결과 없음 */}
-        {results.length === 0 && query && !isLoading && (
-          <div className="backdrop-blur-sm bg-white/90 rounded-3xl shadow-lg border border-gray-200/50 p-16 text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Search className="w-12 h-12 text-gray-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">검색 결과가 없습니다</h3>
-            <p className="text-gray-600">다른 검색어를 입력해보세요</p>
           </div>
         )}
           </>
