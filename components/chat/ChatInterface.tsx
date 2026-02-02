@@ -178,22 +178,22 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   if (summary) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="max-w-2xl w-full p-6">
-          <h2 className="text-2xl font-bold mb-4">상담이 종료되었습니다</h2>
-          <div className="space-y-4">
+        <Card className="max-w-2xl w-full p-8">
+          <h2 className="text-2xl font-bold mb-6">상담이 종료되었습니다</h2>
+          <div className="space-y-6">
             <div>
-              <h3 className="font-semibold mb-2">요약</h3>
-              <p className="text-muted-foreground">{summary.summary}</p>
+              <h3 className="font-semibold mb-3">요약</h3>
+              <p className="text-gray-700 leading-relaxed">{summary.summary}</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">카테고리</h3>
-              <p className="text-muted-foreground">{CATEGORY_LABELS[summary.category] || summary.category}</p>
+              <h3 className="font-semibold mb-3">카테고리</h3>
+              <p className="text-gray-700">{summary.category}</p>
             </div>
             <div>
-              <h3 className="font-semibold mb-2">키워드</h3>
+              <h3 className="font-semibold mb-3">키워드</h3>
               <div className="flex gap-2 flex-wrap">
                 {summary.keywords?.map((kw: string, idx: number) => (
-                  <span key={idx} className="px-2 py-1 bg-secondary rounded-md text-sm">
+                  <span key={idx} className="px-3 py-1 bg-secondary rounded-md text-sm">
                     {kw}
                   </span>
                 ))}
@@ -204,7 +204,8 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
               onClick={() => {
                 router.push('/tworld')
               }}
-              className="w-full mt-4"
+              className="w-full mt-6"
+              style={{ backgroundColor: '#3617CE' }}
             >
               홈으로 돌아가기
             </Button>

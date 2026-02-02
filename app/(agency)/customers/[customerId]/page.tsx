@@ -573,12 +573,12 @@ export default function CustomerDetailPage() {
 
                       {conv.summary && (
                         <>
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-3">
                             <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
                               {conv.summary.category}
                             </Badge>
                           </div>
-                          <p className="text-sm text-gray-800 leading-relaxed">
+                          <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
                             {conv.summary.summary}
                           </p>
                         </>

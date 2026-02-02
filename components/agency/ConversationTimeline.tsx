@@ -50,7 +50,7 @@ export function ConversationTimeline({ conversations }: ConversationTimelineProp
                   <div className="flex items-center gap-2">
                     {summary?.category && (
                       <Badge variant="outline">
-                        {CATEGORY_LABELS[summary.category] || summary.category}
+                        {summary.category}
                       </Badge>
                     )}
                     {summary?.sentiment && (
@@ -92,25 +92,25 @@ export function ConversationTimeline({ conversations }: ConversationTimelineProp
                   <div className="bg-white rounded-lg p-6 shadow-sm">
                     <h3 className="text-lg font-bold mb-4">상담 요약</h3>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <div>
-                        <h4 className="font-semibold mb-2">요약</h4>
-                        <p className="text-muted-foreground">{summary.summary}</p>
+                        <h4 className="font-semibold mb-3">요약</h4>
+                        <p className="text-gray-700 leading-relaxed">{summary.summary}</p>
                       </div>
 
                       <div>
-                        <h4 className="font-semibold mb-2">카테고리</h4>
-                        <p className="text-muted-foreground">
-                          {CATEGORY_LABELS[summary.category] || summary.category}
+                        <h4 className="font-semibold mb-3">카테고리</h4>
+                        <p className="text-gray-700">
+                          {summary.category}
                         </p>
                       </div>
 
                       {summary.keywords && summary.keywords.length > 0 && (
                         <div>
-                          <h4 className="font-semibold mb-2">키워드</h4>
+                          <h4 className="font-semibold mb-3">키워드</h4>
                           <div className="flex gap-2 flex-wrap">
                             {summary.keywords.map((keyword: string, idx: number) => (
-                              <span key={idx} className="px-2 py-1 bg-secondary rounded-md text-sm">
+                              <span key={idx} className="px-3 py-1 bg-secondary rounded-md text-sm">
                                 {keyword}
                               </span>
                             ))}

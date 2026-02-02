@@ -312,8 +312,8 @@ export default function SearchPage() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* 헤더 */}
-        <div className="mb-8">
-          {activeMenu !== 'search' && activeMenu !== 'home' && (
+        {(activeMenu === 'notice' || activeMenu === 'policy') && (
+          <div className="mb-8">
             <button
               onClick={() => setActiveMenu('search')}
               className="flex items-center gap-2 text-gray-600 hover:text-[#3617CE] mb-4 transition-colors"
@@ -321,19 +321,17 @@ export default function SearchPage() {
             >
               ← 뒤로가기 (대시보드)
             </button>
-          )}
-          <h1
-            className="text-5xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent mb-2"
-            style={{ fontFamily: "'SK Mobius', sans-serif" }}
-          >
-            {activeMenu === 'notice' ? '공지사항' : activeMenu === 'policy' ? '정책 센터' : '스마트 AI 대시보드'}
-          </h1>
-          <p className="text-gray-600">
-            {activeMenu === 'notice' ? '중요 공지사항과 업데이트 내용을 확인하세요' :
-             activeMenu === 'policy' ? '최신 정책 정보와 변경사항을 확인하세요' :
-             '실시간 고객 분석과 AI 기반 상담 지원 시스템'}
-          </p>
-        </div>
+            <h1
+              className="text-5xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent mb-2"
+              style={{ fontFamily: "'SK Mobius', sans-serif" }}
+            >
+              {activeMenu === 'notice' ? '공지사항' : '정책 센터'}
+            </h1>
+            <p className="text-gray-600">
+              {activeMenu === 'notice' ? '중요 공지사항과 업데이트 내용을 확인하세요' : '최신 정책 정보와 변경사항을 확인하세요'}
+            </p>
+          </div>
+        )}
 
         {/* 공지사항 페이지 */}
         {activeMenu === 'notice' && (
