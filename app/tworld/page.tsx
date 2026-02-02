@@ -83,7 +83,7 @@ export default function TworldPage() {
       idleTimerRef.current = setTimeout(() => {
         console.log('[DEBUG] 5 seconds passed, showing assistant')
         setShowAssistant(true)
-      }, 5000) // 5초
+      }, 2500) // 5초
     }
 
     // 초기 타이머 시작
