@@ -113,6 +113,7 @@ export default function ChatPage() {
             alt="T world"
             width={32}
             height={32}
+            style={{ width: 'auto', height: 'auto' }}
             priority
           />
           <h1 className="text-xl font-bold text-primary">챗봇</h1>

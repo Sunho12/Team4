@@ -49,8 +49,11 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
         // 이미 로드되어 있으면 바로 초기화
         if (window.kakao && window.kakao.maps) {
           console.debug('[StoreModal] Kakao SDK already present')
-          setSdkLoaded(true)
-          window.kakao.maps.load(() => initializeMap())
+          window.kakao.maps.load(() => {
+            console.debug('[StoreModal] Kakao maps.load() callback executed')
+            setSdkLoaded(true)
+            initializeMap()
+          })
           return
         }
 
@@ -63,8 +66,11 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
             console.debug('[StoreModal] existing script loaded')
             clearTimeout(timeoutId)
             if (window.kakao && window.kakao.maps) {
-              setSdkLoaded(true)
-              window.kakao.maps.load(() => initializeMap())
+              window.kakao.maps.load(() => {
+                console.debug('[StoreModal] Kakao maps.load() callback executed (existing script)')
+                setSdkLoaded(true)
+                initializeMap()
+              })
             } else {
               setSdkError('카카오 지도 초기화에 실패했습니다.')
             }
@@ -100,8 +106,11 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
           console.debug('[StoreModal] Kakao script onload')
           clearTimeout(timeoutId)
           if (window.kakao && window.kakao.maps) {
-            setSdkLoaded(true)
-            window.kakao.maps.load(() => initializeMap())
+            window.kakao.maps.load(() => {
+              console.debug('[StoreModal] Kakao maps.load() callback executed (new script)')
+              setSdkLoaded(true)
+              initializeMap()
+            })
           } else {
             setSdkError('카카오 지도 초기화에 실패했습니다.')
           }
@@ -146,12 +155,35 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
 
   const initializeMap = () => {
     console.debug('[StoreModal] initializeMap called, stores:', stores.length)
-    if (!mapRef.current || stores.length === 0) return
+    if (!mapRef.current || stores.length === 0) {
+      console.warn('[StoreModal] Cannot initialize map: mapRef or stores empty')
+      return
+    }
+
+    if (!window.kakao || !window.kakao.maps) {
+      console.error('[StoreModal] Kakao maps SDK not loaded')
+      setSdkError('카카오 지도 SDK를 찾을 수 없습니다.')
+      return
+    }
 
     // 첫 번째 대리점 위치를 중심으로 설정 (안전한 파싱)
     const firstStore = stores[0]
-    const centerLat = Number(firstStore.mapy) || 0
-    const centerLng = Number(firstStore.mapx) || 0
+    const centerLat = parseFloat(firstStore.mapy)
+    const centerLng = parseFloat(firstStore.mapx)
+
+    // 좌표 유효성 검사 (한국 좌표 범위 확인)
+    const isValidKoreanCoordinate =
+      isFinite(centerLat) && isFinite(centerLng) &&
+      centerLat >= 33 && centerLat <= 43 && // 한국 위도 범위
+      centerLng >= 124 && centerLng <= 132  // 한국 경도 범위
+
+    if (!isValidKoreanCoordinate) {
+      console.error('[StoreModal] Invalid coordinates:', { centerLat, centerLng, store: firstStore })
+      setSdkError('유효하지 않은 좌표입니다.')
+      return
+    }
+
+    console.debug('[StoreModal] Using coordinates:', { centerLat, centerLng })
 
     const container = mapRef.current
     const options = {
@@ -159,9 +191,15 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
       level: 5, // 확대 레벨
     }
 
-    const kakaoMap = new window.kakao.maps.Map(container, options)
-    setMap(kakaoMap)
-    console.debug('[StoreModal] kakaoMap initialized at', centerLat, centerLng)
+    try {
+      const kakaoMap = new window.kakao.maps.Map(container, options)
+      setMap(kakaoMap)
+      console.debug('[StoreModal] kakaoMap initialized successfully at', centerLat, centerLng)
+    } catch (error) {
+      console.error('[StoreModal] Error creating map:', error)
+      setSdkError('지도 생성 중 오류가 발생했습니다.')
+      return
+    }
 
     // 기존 마커 제거
     markersRef.current.forEach(marker => marker.marker.setMap(null))
@@ -171,11 +209,20 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
     const bounds = new window.kakao.maps.LatLngBounds()
 
     stores.forEach((store, index) => {
-      const lat = Number(store.mapy)
-      const lng = Number(store.mapx)
+      const lat = parseFloat(store.mapy)
+      const lng = parseFloat(store.mapx)
 
       // 좌표가 유효하지 않으면 건너뜀
-      if (!isFinite(lat) || !isFinite(lng)) return
+      if (!isFinite(lat) || !isFinite(lng)) {
+        console.warn(`[StoreModal] Invalid coordinates for store ${index}:`, store)
+        return
+      }
+
+      // 한국 좌표 범위 체크
+      if (lat < 33 || lat > 43 || lng < 124 || lng > 132) {
+        console.warn(`[StoreModal] Out of range coordinates for store ${index}:`, { lat, lng })
+        return
+      }
 
       const position = new window.kakao.maps.LatLng(lat, lng)
 
@@ -232,13 +279,21 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
   }
 
   const handleStoreClick = (index: number) => {
-    if (!map || !markersRef.current[index]) return
+    if (!map || !markersRef.current[index]) {
+      console.warn('[StoreModal] Cannot handle store click: map or marker not available')
+      return
+    }
 
     const store = stores[index]
-    const position = new window.kakao.maps.LatLng(
-      parseFloat(store.mapy),
-      parseFloat(store.mapx)
-    )
+    const lat = parseFloat(store.mapy)
+    const lng = parseFloat(store.mapx)
+
+    if (!isFinite(lat) || !isFinite(lng)) {
+      console.error('[StoreModal] Invalid coordinates for clicked store:', store)
+      return
+    }
+
+    const position = new window.kakao.maps.LatLng(lat, lng)
 
     // 지도 중심 이동
     map.setCenter(position)
@@ -267,18 +322,25 @@ export function StoreModal({ isOpen, onClose, stores, location }: StoreModalProp
           {/* 지도 영역 */}
           <div className="order-1 md:order-2">
             <div className="relative w-full h-[400px] rounded-lg border" style={{ minHeight: '400px' }}>
-              <div ref={mapRef} className="w-full h-full" />
+              <div ref={mapRef} className="w-full h-full" style={{ width: '100%', height: '100%' }} />
 
               {/* 로드 중 / 에러 상태 표시 */}
               {!sdkLoaded && !sdkError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                  <div className="text-sm text-muted-foreground">지도 로드 중...</div>
+                <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <div className="text-sm text-muted-foreground">카카오 지도 로드 중...</div>
+                  </div>
                 </div>
               )}
 
               {sdkError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                  <div className="text-sm text-red-500">지도 로드 실패: {sdkError}</div>
+                <div className="absolute inset-0 flex items-center justify-center bg-white/90 rounded-lg">
+                  <div className="flex flex-col items-center gap-2 text-center p-4">
+                    <div className="text-red-500 text-4xl">⚠️</div>
+                    <div className="text-sm text-red-600 font-medium">{sdkError}</div>
+                    <div className="text-xs text-muted-foreground">브라우저 콘솔을 확인해주세요</div>
+                  </div>
                 </div>
               )}
             </div>
