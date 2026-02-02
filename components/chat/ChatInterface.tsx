@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
+import { StoreModal } from './StoreModal'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { Message } from '@/types/chat'
+import type { StoreInfo } from '@/lib/utils/storeSearch'
 
 interface ChatInterfaceProps {
   sessionToken: string
@@ -32,6 +34,11 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   const [summary, setSummary] = useState<any>(null)
   const [predictions, setPredictions] = useState<any>(null)
   const initializedRef = useRef(false)
+
+  // 대리점 모달 상태
+  const [isStoreModalOpen, setIsStoreModalOpen] = useState(false)
+  const [stores, setStores] = useState<StoreInfo[]>([])
+  const [searchLocation, setSearchLocation] = useState('')
 
   useEffect(() => {
     if (!conversationId) {
@@ -129,6 +136,13 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
           created_at: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, assistantMessage])
+
+        // 대리점 검색 결과가 있으면 모달 표시
+        if (data.stores && data.stores.length > 0) {
+          setStores(data.stores)
+          setSearchLocation(data.searchLocation || '해당 지역')
+          setIsStoreModalOpen(true)
+        }
       }
     } catch (error) {
       console.error('Failed to send message:', error)
@@ -275,6 +289,14 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
       )}
 
       <MessageInput onSend={sendMessage} disabled={isLoading} />
+
+      {/* 대리점 검색 결과 모달 */}
+      <StoreModal
+        isOpen={isStoreModalOpen}
+        onClose={() => setIsStoreModalOpen(false)}
+        stores={stores}
+        location={searchLocation}
+      />
     </div>
   )
 }
