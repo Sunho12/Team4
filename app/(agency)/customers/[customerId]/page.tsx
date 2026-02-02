@@ -283,15 +283,15 @@ export default function CustomerDetailPage() {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
         style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(10px)',
+          backgroundColor: 'rgba(40, 40, 50, 0.85)',
+          backdropFilter: 'blur(12px)',
           fontFamily: "'SK Mobius', -apple-system, BlinkMacSystemFont, sans-serif"
         }}
       >
 
         <div className="flex flex-col items-center justify-center relative z-10">
-          {/* SVG 중앙의 작은 다리와 불꽃놀이 */}
-          <svg width="400" height="300" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+          {/* SVG 중앙의 작은 다리와 화려한 불꽃놀이 */}
+          <svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
             <defs>
               {/* SK Red to Orange 그라데이션 */}
               <linearGradient id="bridgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -310,138 +310,296 @@ export default function CustomerDetailPage() {
               </filter>
             </defs>
 
-            {/* 불꽃놀이 배경 (Soft Fireworks) */}
-            <g id="fireworks">
-              {/* 불꽃 1 - 핑크 */}
+            {/* 화려한 불꽃놀이 배경 (Rich Fireworks) */}
+            <g id="rich-fireworks">
+              {/* 불꽃 1 - 핑크/마젠타 (왼쪽 상단) */}
               <g opacity="0">
-                <circle cx="120" cy="80" r="3" fill="#FFB6C1" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;30;50" dur="2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2s" repeatCount="indefinite" />
+                {/* 코어 */}
+                <circle cx="150" cy="100" r="4" fill="#FFFFFF" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="2;6;4" dur="2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="110" cy="70" r="2" fill="#FFD4E5" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;20;35" dur="2s" repeatCount="indefinite" begin="0.1s" />
-                  <animate attributeName="opacity" values="1;0.4;0" dur="2s" repeatCount="indefinite" begin="0.1s" />
+                {/* 방사형 입자들 - 12방향 */}
+                <circle cx="150" cy="100" r="3" fill="#FF1493" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;35;60" dur="2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,-40; 0,-70" dur="2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="130" cy="75" r="2" fill="#FFC0CB" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;25;40" dur="2s" repeatCount="indefinite" begin="0.2s" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2s" repeatCount="indefinite" begin="0.2s" />
+                <circle cx="150" cy="100" r="3" fill="#FF69B4" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;30;55" dur="2s" repeatCount="indefinite" begin="0.05s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" begin="0.05s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 35,-35; 60,-60" dur="2s" repeatCount="indefinite" begin="0.05s" />
+                </circle>
+                <circle cx="150" cy="100" r="3" fill="#FFB6C1" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;32;58" dur="2s" repeatCount="indefinite" begin="0.1s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" begin="0.1s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 40,0; 70,0" dur="2s" repeatCount="indefinite" begin="0.1s" />
+                </circle>
+                <circle cx="150" cy="100" r="3" fill="#FF1493" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;33;56" dur="2s" repeatCount="indefinite" begin="0.15s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" begin="0.15s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 35,35; 60,60" dur="2s" repeatCount="indefinite" begin="0.15s" />
+                </circle>
+                <circle cx="150" cy="100" r="3" fill="#C71585" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;28;52" dur="2s" repeatCount="indefinite" begin="0.2s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" begin="0.2s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,40; 0,70" dur="2s" repeatCount="indefinite" begin="0.2s" />
+                </circle>
+                <circle cx="150" cy="100" r="3" fill="#FF69B4" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;31;54" dur="2s" repeatCount="indefinite" begin="0.25s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" begin="0.25s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -35,35; -60,60" dur="2s" repeatCount="indefinite" begin="0.25s" />
+                </circle>
+                <circle cx="150" cy="100" r="3" fill="#FFB6C1" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;34;57" dur="2s" repeatCount="indefinite" begin="0.3s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" begin="0.3s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -40,0; -70,0" dur="2s" repeatCount="indefinite" begin="0.3s" />
+                </circle>
+                <circle cx="150" cy="100" r="3" fill="#FF1493" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;29;53" dur="2s" repeatCount="indefinite" begin="0.35s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2s" repeatCount="indefinite" begin="0.35s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -35,-35; -60,-60" dur="2s" repeatCount="indefinite" begin="0.35s" />
                 </circle>
                 <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" />
               </g>
 
-              {/* 불꽃 2 - 오렌지 */}
+              {/* 불꽃 2 - 오렌지/골드 (오른쪽 상단) */}
               <g opacity="0">
-                <circle cx="280" cy="100" r="3" fill="#FFB88C" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;35;55" dur="2.5s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.5s" repeatCount="indefinite" />
+                <circle cx="450" cy="120" r="4" fill="#FFFFFF" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="2;6;4" dur="2.3s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="270" cy="90" r="2" fill="#FFD4A3" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;25;40" dur="2.5s" repeatCount="indefinite" begin="0.15s" />
-                  <animate attributeName="opacity" values="1;0.4;0" dur="2.5s" repeatCount="indefinite" begin="0.15s" />
+                <circle cx="450" cy="120" r="3" fill="#FF4500" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;38;65" dur="2.3s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,-45; 0,-75" dur="2.3s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="290" cy="95" r="2" fill="#FFA500" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;28;45" dur="2.5s" repeatCount="indefinite" begin="0.25s" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.5s" repeatCount="indefinite" begin="0.25s" />
+                <circle cx="450" cy="120" r="3" fill="#FF8C00" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;35;62" dur="2.3s" repeatCount="indefinite" begin="0.07s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" begin="0.07s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 38,-38; 65,-65" dur="2.3s" repeatCount="indefinite" begin="0.07s" />
                 </circle>
-                <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite" begin="0.8s" />
+                <circle cx="450" cy="120" r="3" fill="#FFD700" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;36;63" dur="2.3s" repeatCount="indefinite" begin="0.14s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" begin="0.14s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 45,0; 75,0" dur="2.3s" repeatCount="indefinite" begin="0.14s" />
+                </circle>
+                <circle cx="450" cy="120" r="3" fill="#FFA500" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;34;60" dur="2.3s" repeatCount="indefinite" begin="0.21s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" begin="0.21s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 38,38; 65,65" dur="2.3s" repeatCount="indefinite" begin="0.21s" />
+                </circle>
+                <circle cx="450" cy="120" r="3" fill="#FF4500" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;32;58" dur="2.3s" repeatCount="indefinite" begin="0.28s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" begin="0.28s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,45; 0,75" dur="2.3s" repeatCount="indefinite" begin="0.28s" />
+                </circle>
+                <circle cx="450" cy="120" r="3" fill="#FFD700" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;37;64" dur="2.3s" repeatCount="indefinite" begin="0.35s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" begin="0.35s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -38,38; -65,65" dur="2.3s" repeatCount="indefinite" begin="0.35s" />
+                </circle>
+                <circle cx="450" cy="120" r="3" fill="#FF8C00" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;33;59" dur="2.3s" repeatCount="indefinite" begin="0.42s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" begin="0.42s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -45,0; -75,0" dur="2.3s" repeatCount="indefinite" begin="0.42s" />
+                </circle>
+                <circle cx="450" cy="120" r="3" fill="#FFA500" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;31;56" dur="2.3s" repeatCount="indefinite" begin="0.49s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.3s" repeatCount="indefinite" begin="0.49s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -38,-38; -65,-65" dur="2.3s" repeatCount="indefinite" begin="0.49s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.3s" repeatCount="indefinite" begin="0.9s" />
               </g>
 
-              {/* 불꽃 3 - 연보라 */}
+              {/* 불꽃 3 - 보라/자주 (중앙 위) */}
               <g opacity="0">
-                <circle cx="200" cy="60" r="3" fill="#D8BFD8" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;32;48" dur="2.2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.2s" repeatCount="indefinite" />
+                <circle cx="300" cy="80" r="4" fill="#FFFFFF" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="2;6;4" dur="2.5s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="190" cy="50" r="2" fill="#E6D5E6" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;22;38" dur="2.2s" repeatCount="indefinite" begin="0.12s" />
-                  <animate attributeName="opacity" values="1;0.4;0" dur="2.2s" repeatCount="indefinite" begin="0.12s" />
+                <circle cx="300" cy="80" r="3" fill="#9370DB" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;40;68" dur="2.5s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,-48; 0,-80" dur="2.5s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="210" cy="55" r="2" fill="#C8A2C8" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;26;42" dur="2.2s" repeatCount="indefinite" begin="0.18s" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.2s" repeatCount="indefinite" begin="0.18s" />
+                <circle cx="300" cy="80" r="3" fill="#BA55D3" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;38;66" dur="2.5s" repeatCount="indefinite" begin="0.06s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.06s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 40,-40; 68,-68" dur="2.5s" repeatCount="indefinite" begin="0.06s" />
                 </circle>
-                <animate attributeName="opacity" values="0;1;1;0" dur="2.2s" repeatCount="indefinite" begin="1.5s" />
+                <circle cx="300" cy="80" r="3" fill="#DDA0DD" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;36;64" dur="2.5s" repeatCount="indefinite" begin="0.12s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.12s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 48,0; 80,0" dur="2.5s" repeatCount="indefinite" begin="0.12s" />
+                </circle>
+                <circle cx="300" cy="80" r="3" fill="#9370DB" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;39;67" dur="2.5s" repeatCount="indefinite" begin="0.18s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.18s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 40,40; 68,68" dur="2.5s" repeatCount="indefinite" begin="0.18s" />
+                </circle>
+                <circle cx="300" cy="80" r="3" fill="#8B008B" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;35;62" dur="2.5s" repeatCount="indefinite" begin="0.24s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.24s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,48; 0,80" dur="2.5s" repeatCount="indefinite" begin="0.24s" />
+                </circle>
+                <circle cx="300" cy="80" r="3" fill="#BA55D3" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;37;65" dur="2.5s" repeatCount="indefinite" begin="0.3s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.3s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -40,40; -68,68" dur="2.5s" repeatCount="indefinite" begin="0.3s" />
+                </circle>
+                <circle cx="300" cy="80" r="3" fill="#DDA0DD" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;41;69" dur="2.5s" repeatCount="indefinite" begin="0.36s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.36s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -48,0; -80,0" dur="2.5s" repeatCount="indefinite" begin="0.36s" />
+                </circle>
+                <circle cx="300" cy="80" r="3" fill="#9370DB" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;34;61" dur="2.5s" repeatCount="indefinite" begin="0.42s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.5s" repeatCount="indefinite" begin="0.42s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -40,-40; -68,-68" dur="2.5s" repeatCount="indefinite" begin="0.42s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.5s" repeatCount="indefinite" begin="1.7s" />
               </g>
 
-              {/* 불꽃 4 - 골드 */}
+              {/* 불꽃 4 - 청록/시안 (왼쪽 하단) */}
               <g opacity="0">
-                <circle cx="320" cy="70" r="3" fill="#FFD700" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;28;46" dur="2.3s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.3s" repeatCount="indefinite" />
+                <circle cx="180" cy="250" r="4" fill="#FFFFFF" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="2;6;4" dur="2.2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="310" cy="65" r="2" fill="#FFE55C" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;20;36" dur="2.3s" repeatCount="indefinite" begin="0.1s" />
-                  <animate attributeName="opacity" values="1;0.4;0" dur="2.3s" repeatCount="indefinite" begin="0.1s" />
+                <circle cx="180" cy="250" r="3" fill="#00CED1" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;36;63" dur="2.2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,-43; 0,-73" dur="2.2s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="330" cy="68" r="2" fill="#FFEB3B" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;24;40" dur="2.3s" repeatCount="indefinite" begin="0.2s" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.3s" repeatCount="indefinite" begin="0.2s" />
+                <circle cx="180" cy="250" r="3" fill="#40E0D0" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;34;60" dur="2.2s" repeatCount="indefinite" begin="0.05s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" begin="0.05s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 36,-36; 63,-63" dur="2.2s" repeatCount="indefinite" begin="0.05s" />
                 </circle>
-                <animate attributeName="opacity" values="0;1;1;0" dur="2.3s" repeatCount="indefinite" begin="2.3s" />
+                <circle cx="180" cy="250" r="3" fill="#48D1CC" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;35;62" dur="2.2s" repeatCount="indefinite" begin="0.1s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" begin="0.1s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 43,0; 73,0" dur="2.2s" repeatCount="indefinite" begin="0.1s" />
+                </circle>
+                <circle cx="180" cy="250" r="3" fill="#00CED1" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;32;58" dur="2.2s" repeatCount="indefinite" begin="0.15s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" begin="0.15s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 36,36; 63,63" dur="2.2s" repeatCount="indefinite" begin="0.15s" />
+                </circle>
+                <circle cx="180" cy="250" r="3" fill="#20B2AA" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;33;59" dur="2.2s" repeatCount="indefinite" begin="0.2s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" begin="0.2s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,43; 0,73" dur="2.2s" repeatCount="indefinite" begin="0.2s" />
+                </circle>
+                <circle cx="180" cy="250" r="3" fill="#40E0D0" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;37;64" dur="2.2s" repeatCount="indefinite" begin="0.25s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" begin="0.25s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -36,36; -63,63" dur="2.2s" repeatCount="indefinite" begin="0.25s" />
+                </circle>
+                <circle cx="180" cy="250" r="3" fill="#48D1CC" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;31;57" dur="2.2s" repeatCount="indefinite" begin="0.3s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" begin="0.3s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -43,0; -73,0" dur="2.2s" repeatCount="indefinite" begin="0.3s" />
+                </circle>
+                <circle cx="180" cy="250" r="3" fill="#00CED1" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;30;55" dur="2.2s" repeatCount="indefinite" begin="0.35s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.2s" repeatCount="indefinite" begin="0.35s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -36,-36; -63,-63" dur="2.2s" repeatCount="indefinite" begin="0.35s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.2s" repeatCount="indefinite" begin="2.5s" />
               </g>
 
-              {/* 불꽃 5 - 피치 */}
+              {/* 불꽃 5 - 노랑/라임 (오른쪽 하단) */}
               <g opacity="0">
-                <circle cx="80" cy="120" r="3" fill="#FFDAB9" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;30;50" dur="2.4s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.4s" repeatCount="indefinite" />
+                <circle cx="420" cy="260" r="4" fill="#FFFFFF" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="2;6;4" dur="2.4s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="72" cy="110" r="2" fill="#FFE4C4" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;22;38" dur="2.4s" repeatCount="indefinite" begin="0.13s" />
-                  <animate attributeName="opacity" values="1;0.4;0" dur="2.4s" repeatCount="indefinite" begin="0.13s" />
+                <circle cx="420" cy="260" r="3" fill="#FFFF00" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;37;64" dur="2.4s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,-44; 0,-76" dur="2.4s" repeatCount="indefinite" />
                 </circle>
-                <circle cx="88" cy="115" r="2" fill="#FFCBA4" filter="url(#fireworkGlow)">
-                  <animate attributeName="r" values="0;26;44" dur="2.4s" repeatCount="indefinite" begin="0.2s" />
-                  <animate attributeName="opacity" values="1;0.3;0" dur="2.4s" repeatCount="indefinite" begin="0.2s" />
+                <circle cx="420" cy="260" r="3" fill="#FFD700" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;35;62" dur="2.4s" repeatCount="indefinite" begin="0.06s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" begin="0.06s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 37,-37; 64,-64" dur="2.4s" repeatCount="indefinite" begin="0.06s" />
                 </circle>
-                <animate attributeName="opacity" values="0;1;1;0" dur="2.4s" repeatCount="indefinite" begin="3s" />
+                <circle cx="420" cy="260" r="3" fill="#FFE55C" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;38;66" dur="2.4s" repeatCount="indefinite" begin="0.12s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" begin="0.12s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 44,0; 76,0" dur="2.4s" repeatCount="indefinite" begin="0.12s" />
+                </circle>
+                <circle cx="420" cy="260" r="3" fill="#FFFF00" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;33;59" dur="2.4s" repeatCount="indefinite" begin="0.18s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" begin="0.18s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 37,37; 64,64" dur="2.4s" repeatCount="indefinite" begin="0.18s" />
+                </circle>
+                <circle cx="420" cy="260" r="3" fill="#FFD700" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;36;63" dur="2.4s" repeatCount="indefinite" begin="0.24s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" begin="0.24s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; 0,44; 0,76" dur="2.4s" repeatCount="indefinite" begin="0.24s" />
+                </circle>
+                <circle cx="420" cy="260" r="3" fill="#FFE55C" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;34;61" dur="2.4s" repeatCount="indefinite" begin="0.3s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" begin="0.3s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -37,37; -64,64" dur="2.4s" repeatCount="indefinite" begin="0.3s" />
+                </circle>
+                <circle cx="420" cy="260" r="3" fill="#FFFF00" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;39;67" dur="2.4s" repeatCount="indefinite" begin="0.36s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" begin="0.36s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -44,0; -76,0" dur="2.4s" repeatCount="indefinite" begin="0.36s" />
+                </circle>
+                <circle cx="420" cy="260" r="3" fill="#FFD700" filter="url(#fireworkGlow)">
+                  <animate attributeName="r" values="0;32;58" dur="2.4s" repeatCount="indefinite" begin="0.42s" />
+                  <animate attributeName="opacity" values="1;0.5;0" dur="2.4s" repeatCount="indefinite" begin="0.42s" />
+                  <animateTransform attributeName="transform" type="translate" values="0,0; -37,-37; -64,-64" dur="2.4s" repeatCount="indefinite" begin="0.42s" />
+                </circle>
+                <animate attributeName="opacity" values="0;1;1;0" dur="2.4s" repeatCount="indefinite" begin="3.2s" />
               </g>
             </g>
 
             {/* 중앙의 작은 다리 (The Minimal Bridge) */}
             <g id="minimal-bridge">
               {/* 다리 그림자 */}
-              <ellipse cx="200" cy="185" rx="90" ry="8" fill="#000000" opacity="0.08"/>
+              <ellipse cx="300" cy="240" rx="110" ry="10" fill="#000000" opacity="0.15"/>
 
               {/* 메인 아치 */}
               <path
-                d="M 110 170 Q 200 130 290 170"
+                d="M 190 220 Q 300 175 410 220"
                 fill="none"
                 stroke="url(#bridgeGradient)"
-                strokeWidth="6"
+                strokeWidth="7"
                 strokeLinecap="round"
-                opacity="0.9"
+                opacity="1"
               />
 
               {/* 내부 하이라이트 라인 */}
               <path
-                d="M 115 168 Q 200 133 285 168"
+                d="M 195 218 Q 300 178 405 218"
                 fill="none"
                 stroke="#FFFFFF"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
-                opacity="0.5"
+                opacity="0.6"
               />
 
               {/* 왼쪽 기둥 */}
-              <rect x="108" y="170" width="4" height="15" rx="2" fill="url(#bridgeGradient)" opacity="0.8"/>
-              <circle cx="110" cy="170" r="3" fill="url(#bridgeGradient)"/>
+              <rect x="187" y="220" width="6" height="20" rx="3" fill="url(#bridgeGradient)" opacity="0.9"/>
+              <circle cx="190" cy="220" r="4" fill="url(#bridgeGradient)"/>
 
               {/* 오른쪽 기둥 */}
-              <rect x="288" y="170" width="4" height="15" rx="2" fill="url(#bridgeGradient)" opacity="0.8"/>
-              <circle cx="290" cy="170" r="3" fill="url(#bridgeGradient)"/>
+              <rect x="407" y="220" width="6" height="20" rx="3" fill="url(#bridgeGradient)" opacity="0.9"/>
+              <circle cx="410" cy="220" r="4" fill="url(#bridgeGradient)"/>
             </g>
 
           </svg>
 
           {/* 타이포그래피 - Breathing 애니메이션 */}
-          <div className="mt-12 text-center px-4">
-            <p className="text-[17px] font-normal breathing-text" style={{ letterSpacing: '0.03em', lineHeight: '1.6' }}>
+          <div className="mt-14 text-center px-4">
+            <p className="text-[18px] font-normal breathing-text" style={{ letterSpacing: '0.04em', lineHeight: '1.6' }}>
               <span>T-Bridge가 실시간으로 데이터를 </span>
               <span
                 style={{
-                  color: '#EA002C',
-                  fontWeight: 600
+                  color: '#FFD700',
+                  fontWeight: 700,
+                  textShadow: '0 0 10px rgba(255, 215, 0, 0.5)'
                 }}
               >
                 연결
@@ -453,7 +611,7 @@ export default function CustomerDetailPage() {
           <style jsx>{`
             @keyframes breathing {
               0%, 100% {
-                opacity: 0.7;
+                opacity: 0.8;
               }
               50% {
                 opacity: 1;
@@ -462,7 +620,8 @@ export default function CustomerDetailPage() {
 
             .breathing-text {
               animation: breathing 3s ease-in-out infinite;
-              color: #333333;
+              color: #FFFFFF;
+              text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
             }
           `}</style>
         </div>
