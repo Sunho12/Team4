@@ -12,7 +12,7 @@ export interface ConversationData {
   status: 'active' | 'ended'
 }
 
-export async function createSession(customerPhone?: string, customerName?: string): Promise<SessionData> {
+export async function createSession(userId: string, customerPhone?: string, customerName?: string): Promise<SessionData> {
   const supabase = await createServiceRoleClient()
   const sessionToken = uuidv4()
 
@@ -20,6 +20,7 @@ export async function createSession(customerPhone?: string, customerName?: strin
     .from('customer_sessions')
     .insert({
       session_token: sessionToken,
+      user_id: userId,
       customer_phone: customerPhone,
       customer_name: customerName,
     })

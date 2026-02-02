@@ -1,9 +1,21 @@
 import { NextResponse } from 'next/server'
 import { createSession } from '@/lib/services/chatService'
+import { getCurrentUser } from '@/lib/services/authService'
 
 export async function POST() {
   try {
-    const session = await createSession()
+    // Check authentication
+    const user = await getCurrentUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { error: '로그인이 필요합니다' },
+        { status: 401 }
+      )
+    }
+
+    // Create session with user ID
+    const session = await createSession(user.id)
 
     return NextResponse.json({
       sessionToken: session.sessionToken,

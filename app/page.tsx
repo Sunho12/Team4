@@ -63,7 +63,7 @@ export default function Home() {
         <div className="flex-1 grid md:grid-cols-2 grid-cols-1 gap-0 px-8 pb-16">
           {/* 왼쪽 - 고객용 카드 */}
           <Link
-            href="/chat"
+            href="/tworld"
             className="group relative flex items-center justify-center p-8 transition-all duration-300"
           >
             {/* 하이엔드 글래스모피즘 카드 */}
