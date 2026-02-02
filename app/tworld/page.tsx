@@ -728,16 +728,12 @@ export default function TworldPage() {
                 <span style={{ fontWeight: '600', color: '#3617CE' }}>{userName}님</span>
                 {' | '}
                 <a onClick={handleSignOut} style={{ cursor: 'pointer' }}>로그아웃</a>
-                {' | '}
-                <a onClick={() => setActiveModal('search')} style={{ cursor: 'pointer' }}>검색</a>
               </>
             ) : (
               <>
                 <Link href="/user/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
                 {' | '}
                 <Link href="/auth/signup" style={{ textDecoration: 'none', color: 'inherit' }}>회원가입</Link>
-                {' | '}
-                <a onClick={() => setActiveModal('search')} style={{ cursor: 'pointer' }}>검색</a>
               </>
             )}
           </div>
@@ -831,7 +827,7 @@ export default function TworldPage() {
       </footer>
 
       {/* Chatbot Button */}
-      <Link href="/user/login" className="chatbot-button">
+      <Link href="/chat" className="chatbot-button">
         <div className="icon">💬</div>
       </Link>
 
