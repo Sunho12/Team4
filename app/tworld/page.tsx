@@ -1,78 +1,26 @@
 'use client'
 
 import Link from 'next/link'
-import Script from 'next/script'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 export default function TworldPage() {
   useEffect(() => {
-    const initModels = () => {
-      const modelBye = document.getElementById('modelBye') as any
-      const modelStretching = document.getElementById('modelStretching') as any
-      const modelCheers = document.getElementById('modelCheers') as any
-      const container = document.getElementById('characterContainer')
+    // model-viewer 스크립트 동적 로드
+    const script = document.createElement('script')
+    script.type = 'module'
+    script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js'
+    document.head.appendChild(script)
 
-      if (!modelBye || !modelStretching || !modelCheers || !container) return
-
-      let currentState = 'bye'
-
-      function switchModel(modelToShow: any) {
-        [modelBye, modelStretching, modelCheers].forEach((model: any) => {
-          model.classList.remove('active')
-          if (model.pause) model.pause()
-        })
-        modelToShow.classList.add('active')
+    return () => {
+      // cleanup
+      if (script.parentNode) {
+        script.parentNode.removeChild(script)
       }
-
-      modelBye.addEventListener('load', () => {
-        console.log('Bye model loaded')
-        const duration = modelBye.duration || 3
-        console.log('Bye animation duration:', duration)
-
-        setTimeout(() => {
-          console.log('Switching to stretching')
-          currentState = 'stretching'
-          switchModel(modelStretching)
-          modelStretching.setAttribute('animation-name', '*')
-          modelStretching.loop = true
-          if (modelStretching.play) modelStretching.play()
-        }, duration * 1000)
-      })
-
-      container.addEventListener('click', () => {
-        console.log('Character clicked, current state:', currentState)
-        if (currentState === 'stretching') {
-          currentState = 'cheers'
-          switchModel(modelCheers)
-          modelCheers.loop = false
-          if (modelCheers.play) modelCheers.play()
-
-          const cheersDuration = modelCheers.duration || 3
-          console.log('Cheers animation duration:', cheersDuration)
-          setTimeout(() => {
-            console.log('Switching back to stretching')
-            currentState = 'stretching'
-            switchModel(modelStretching)
-            modelStretching.loop = true
-            if (modelStretching.play) modelStretching.play()
-          }, cheersDuration * 1000)
-        }
-      })
     }
-
-    // model-viewer가 로드된 후 초기화
-    const timer = setTimeout(initModels, 1000)
-    return () => clearTimeout(timer)
   }, [])
 
   return (
     <>
-      <Script
-        type="module"
-        src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"
-        strategy="beforeInteractive"
-      />
-
       <style jsx global>{`
         /* T world 공식 컬러 정의 */
         :root {
@@ -128,15 +76,10 @@ export default function TworldPage() {
         .footer-inner { max-width: 1080px; margin: 0 auto; padding: 0 20px; line-height: 1.8; }
         .footer-logo { font-size: 20px; font-weight: 800; color: #ccc; margin-bottom: 20px; }
 
-        /* 3D Character */
-        .character-container { position: fixed; bottom: 20px; right: 20px; width: 250px; height: 250px; z-index: 200; cursor: pointer; }
-        model-viewer { width: 100%; height: 100%; display: none; }
-        model-viewer.active { display: block; }
-
         /* Chatbot Button */
         .chatbot-button {
           position: fixed;
-          bottom: 290px;
+          bottom: 30px;
           right: 30px;
           width: 70px;
           height: 70px;
@@ -148,7 +91,7 @@ export default function TworldPage() {
           cursor: pointer;
           box-shadow: 0 4px 20px rgba(54, 23, 206, 0.3);
           transition: all 0.3s ease;
-          z-index: 201;
+          z-index: 200;
           text-decoration: none;
         }
         .chatbot-button:hover {
@@ -158,6 +101,23 @@ export default function TworldPage() {
         .chatbot-button .icon {
           font-size: 32px;
         }
+
+        /* 3D Character */
+        .character-container {
+          position: fixed;
+          bottom: 110px;
+          right: 15px;
+          width: 150px;
+          height: 150px;
+          z-index: 201;
+          pointer-events: none;
+        }
+        .character-container model-viewer {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
+
       `}</style>
 
       <header className="tworld-header">
@@ -238,29 +198,18 @@ export default function TworldPage() {
         <div className="icon">💬</div>
       </Link>
 
-      {/* 3D Character Models */}
-      <div className="character-container" id="characterContainer">
+      {/* 3D Character */}
+      <div
+        className="character-container"
+        suppressHydrationWarning
+      >
         <model-viewer
-          id="modelBye"
           src="/Tworld/models/model_bye.glb"
           camera-orbit="0deg 75deg 105%"
           animation-name="*"
           autoplay
-          className="active">
-        </model-viewer>
-
-        <model-viewer
-          id="modelStretching"
-          src="/Tworld/models/model_stretching.glb"
-          camera-orbit="0deg 75deg 105%"
-          animation-name="*">
-        </model-viewer>
-
-        <model-viewer
-          id="modelCheers"
-          src="/Tworld/models/model_cheers.glb"
-          camera-orbit="0deg 75deg 105%"
-          animation-name="*">
+          loop
+          suppressHydrationWarning>
         </model-viewer>
       </div>
     </>
