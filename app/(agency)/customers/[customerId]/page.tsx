@@ -312,7 +312,7 @@ export default function CustomerDetailPage() {
       <div
         className="fixed inset-0 z-50 flex items-center justify-center"
         style={{
-          backgroundColor: 'rgba(243, 243, 245, 0.95)'
+          backgroundColor: 'rgba(248, 248, 255, 0.95)'
         }}
       >
         <Image
