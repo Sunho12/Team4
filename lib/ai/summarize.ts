@@ -12,17 +12,32 @@ export interface SummaryResult {
 export async function generateSummary(conversationId: string): Promise<SummaryResult> {
   const supabase = await createServiceRoleClient()
 
-  const { data: messages, error } = await supabase
-    .from('messages')
-    .select('role, content')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
+  // Fetch messages and conversation to get session_id
+  const [messagesResponse, conversationResponse] = await Promise.all([
+    supabase
+      .from('messages')
+      .select('role, content')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('conversations')
+      .select('session_id')
+      .eq('id', conversationId)
+      .single()
+  ])
 
-  if (error || !messages || messages.length === 0) {
+  const { data: messages, error: messagesError } = messagesResponse
+  const { data: conversation, error: conversationError } = conversationResponse
+
+  if (messagesError || !messages || messages.length === 0) {
     throw new Error('Failed to fetch messages for summarization')
   }
 
-  const conversation = messages
+  if (conversationError || !conversation) {
+    throw new Error('Failed to fetch conversation data')
+  }
+
+  const conversationText = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join('\n')
 
@@ -30,7 +45,7 @@ export async function generateSummary(conversationId: string): Promise<SummaryRe
     model: MODELS.CHAT,
     messages: [
       { role: 'system', content: SYSTEM_PROMPTS.SUMMARIZE },
-      { role: 'user', content: conversation },
+      { role: 'user', content: conversationText },
     ],
     response_format: { type: 'json_object' },
     temperature: 0.3,
@@ -42,6 +57,7 @@ export async function generateSummary(conversationId: string): Promise<SummaryRe
     .from('conversation_summaries')
     .insert({
       conversation_id: conversationId,
+      session_id: conversation.session_id,
       summary: summaryData.summary,
       category: summaryData.category,
       keywords: summaryData.keywords,
