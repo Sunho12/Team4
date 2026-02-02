@@ -14,8 +14,8 @@ export async function POST() {
       )
     }
 
-    // Create session with user ID
-    const session = await createSession(user.id)
+    // Create session with user ID and customer info
+    const session = await createSession(user.id, user.phoneNumber, user.name)
 
     return NextResponse.json({
       sessionToken: session.sessionToken,

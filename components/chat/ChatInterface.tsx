@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { MessageList } from './MessageList'
 import { MessageInput } from './MessageInput'
 import { Card } from '@/components/ui/card'
@@ -13,7 +14,19 @@ interface ChatInterfaceProps {
   onConversationCreated: (id: string) => void
 }
 
+// 카테고리 한국어 매핑
+const CATEGORY_LABELS: Record<string, string> = {
+  'plan_change': '요금제 변경',
+  'device_upgrade': '기기 변경',
+  'billing_inquiry': '요금 문의',
+  'technical_support': '기술 지원',
+  'add_service': '부가서비스 가입',
+  'cancel_service': '서비스 해지',
+  'general_inquiry': '일반 문의',
+}
+
 export function ChatInterface({ sessionToken, conversationId, onConversationCreated }: ChatInterfaceProps) {
+  const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [summary, setSummary] = useState<any>(null)
@@ -134,7 +147,7 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
             </div>
             <div>
               <h3 className="font-semibold mb-2">카테고리</h3>
-              <p className="text-muted-foreground">{summary.category}</p>
+              <p className="text-muted-foreground">{CATEGORY_LABELS[summary.category] || summary.category}</p>
             </div>
             <div>
               <h3 className="font-semibold mb-2">키워드</h3>
@@ -147,44 +160,13 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
               </div>
             </div>
 
-            {/* Purchase Predictions */}
-            {predictions && predictions.length > 0 && (
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-semibold mb-2">구매 의향 분석</h3>
-                <div className="space-y-3">
-                  {predictions.map((pred: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-blue-50 rounded-md">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 bg-blue-600 text-white rounded text-xs font-medium">
-                          {pred.prediction_type}
-                        </span>
-                        <span className="px-2 py-1 bg-white rounded text-xs">
-                          확률: {(pred.probability_score * 100).toFixed(0)}%
-                        </span>
-                        <span className="px-2 py-1 bg-white rounded text-xs">
-                          신뢰도: {pred.confidence === 'high' ? '높음' : pred.confidence === 'medium' ? '중간' : '낮음'}
-                        </span>
-                      </div>
-                      {pred.reasoning && (
-                        <p className="text-sm text-muted-foreground">{pred.reasoning}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <Button
               onClick={() => {
-                setSummary(null)
-                setPredictions(null)
-                setMessages([])
-                onConversationCreated('')
-                createConversation()
+                router.push('/tworld')
               }}
               className="w-full mt-4"
             >
-              새 상담 시작
+              홈으로 돌아가기
             </Button>
           </div>
         </Card>
