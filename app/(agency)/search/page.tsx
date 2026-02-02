@@ -326,7 +326,7 @@ export default function SearchPage() {
               <User className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-white text-sm font-semibold">{currentUser?.name || 'SKT 크루'}</p>
+              <p className="text-white text-sm font-semibold">{currentUser?.full_name || currentUser?.name || 'SKT'} 크루님</p>
               <p className="text-white/60 text-xs">직원 ID: {currentUser?.id?.slice(0, 8).toUpperCase() || 'A1234'}</p>
             </div>
           </div>
