@@ -1146,10 +1146,8 @@ export default function CustomerDetailPage() {
                 <p className="text-sm font-semibold text-green-900">결합상품</p>
               </div>
               <div className="flex gap-2">
-                {customer.bundle_types && customer.bundle_types.length > 0 ? (
-                  customer.bundle_types.map((type: string, idx: number) => (
-                    <Badge key={idx} className="bg-green-600 hover:bg-green-700 text-xs">{type}</Badge>
-                  ))
+                {customer.family_members_count > 0 ? (
+                  <p className="text-base font-bold text-green-900">가족결합 {customer.family_members_count}인</p>
                 ) : (
                   <span className="text-sm text-gray-600">없음</span>
                 )}
@@ -1161,11 +1159,11 @@ export default function CustomerDetailPage() {
                 <Smartphone className="w-5 h-5 text-purple-600" />
                 <p className="text-sm font-semibold text-purple-900">단말기</p>
               </div>
-              <p className="text-sm font-bold text-purple-900">{customer.device_model || '정보 없음'}</p>
-              {customer.device_remaining_months && (
-                <Badge className="mt-1 bg-purple-600 hover:bg-purple-700 text-xs">
-                  잔여 {customer.device_remaining_months}개월
-                </Badge>
+              <p className="text-base font-bold text-purple-900">{customer.device_model_name || '정보 없음'}</p>
+              {customer.device_purchase_date && (
+                <p className="text-xs text-purple-700 mt-1">
+                  구매일: {format(new Date(customer.device_purchase_date), 'yyyy.MM.dd')}
+                </p>
               )}
             </div>
 
@@ -1192,51 +1190,50 @@ export default function CustomerDetailPage() {
             </h2>
 
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-              {conversations.length > 0 ? (
-                conversations.map((conv) => {
-                  const isRecent = isRecentConversation(conv.started_at)
-                  return (
-                    <div
-                      key={conv.id}
-                      onClick={() => setSelectedConversation(conv)}
-                      className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 ${
-                        isRecent ? 'border-2 border-[#EA002C]' : 'border border-gray-200'
-                      } transition-all hover:shadow-md cursor-pointer hover:scale-[1.02]`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm text-gray-600 font-medium">
-                          {format(new Date(conv.started_at), 'yyyy.MM.dd HH:mm')}
-                        </span>
-                        {isRecent && (
-                          <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
-                        )}
-                        {conv.summary && (
+              {(() => {
+                // conversation_summaries가 있는 상담만 필터링
+                const conversationsWithSummary = conversations.filter(conv => conv.summary)
+
+                return conversationsWithSummary.length > 0 ? (
+                  conversationsWithSummary.map((conv) => {
+                    const isRecent = isRecentConversation(conv.started_at)
+                    return (
+                      <div
+                        key={conv.id}
+                        onClick={() => setSelectedConversation(conv)}
+                        className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 ${
+                          isRecent ? 'border-2 border-[#EA002C]' : 'border border-gray-200'
+                        } transition-all hover:shadow-md cursor-pointer hover:scale-[1.02]`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm text-gray-600 font-medium">
+                            {format(new Date(conv.started_at), 'yyyy.MM.dd HH:mm')}
+                          </span>
+                          {isRecent && (
+                            <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
+                          )}
                           <Badge className={`${getSentimentColor(conv.summary.sentiment)} text-white text-xs`}>
                             {getSentimentText(conv.summary.sentiment)}
                           </Badge>
-                        )}
-                      </div>
+                        </div>
 
-                      {conv.summary && (
-                        <>
-                          <div className="flex items-center gap-2 mb-3">
-                            <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
-                              {conv.summary.category}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
-                            {conv.summary.summary}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  )
-                })
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  상담 내역이 없습니다.
-                </div>
-              )}
+                        <div className="flex items-center gap-2 mb-3">
+                          <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
+                            {conv.summary.category}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
+                          {conv.summary.summary}
+                        </p>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    상담 요약이 있는 내역이 없습니다.
+                  </div>
+                )
+              })()}
             </div>
           </div>
 

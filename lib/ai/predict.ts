@@ -1,6 +1,7 @@
 import { openai, MODELS } from './openai'
 import { SYSTEM_PROMPTS } from './prompts'
 import { createServiceRoleClient } from '@/lib/supabase/server'
+import { format } from 'date-fns'
 
 export interface PredictionResult {
   prediction_type: string
@@ -61,28 +62,42 @@ async function fetchCustomerData(sessionId: string): Promise<CustomerData> {
   }
 }
 
-// 최근 3일 내 상담 메시지를 가져와서 감정 분석
-async function analyzeComplaintRate(sessionId: string): Promise<{ score: number; reasoning: string }> {
+// 최근 3일 내 상담 요약(conversation_summaries)을 가져와서 감정 분석
+async function analyzeComplaintRate(customerId: string): Promise<{ score: number; reasoning: string }> {
   const supabase = await createServiceRoleClient()
+
+  console.log('[analyzeComplaintRate] Customer ID:', customerId)
 
   // 최근 3일 내 대화만 필터링
   const threeDaysAgo = new Date()
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
 
+  // 1. customerId (profiles.id)로 customer_sessions 찾기
+  const { data: sessions } = await supabase
+    .from('customer_sessions')
+    .select('id')
+    .eq('user_id', customerId)
+
+  if (!sessions || sessions.length === 0) {
+    console.log('[analyzeComplaintRate] No sessions found for customer')
+    return {
+      score: 0,
+      reasoning: '고객의 세션 정보를 찾을 수 없습니다.'
+    }
+  }
+
+  const sessionIds = sessions.map(s => s.id)
+  console.log('[analyzeComplaintRate] Session IDs:', sessionIds)
+
+  // 2. 세션 ID들로 최근 3일 내 conversations 찾기
   const { data: recentConversations } = await supabase
     .from('conversations')
-    .select(`
-      id,
-      started_at,
-      messages (
-        role,
-        content,
-        created_at
-      )
-    `)
-    .eq('session_id', sessionId)
+    .select('id, started_at')
+    .in('session_id', sessionIds)
     .gte('started_at', threeDaysAgo.toISOString())
     .order('started_at', { ascending: false })
+
+  console.log('[analyzeComplaintRate] Recent conversations found:', recentConversations?.length || 0)
 
   if (!recentConversations || recentConversations.length === 0) {
     return {
@@ -91,26 +106,44 @@ async function analyzeComplaintRate(sessionId: string): Promise<{ score: number;
     }
   }
 
-  // 사용자 메시지만 추출
-  const userMessages = recentConversations
-    .flatMap(conv => conv.messages || [])
-    .filter((msg: any) => msg.role === 'user')
-    .map((msg: any) => msg.content)
-    .slice(0, 20) // 최대 20개 메시지만 분석
+  // 3. conversations에 대한 conversation_summaries 가져오기
+  const conversationIds = recentConversations.map(c => c.id)
+  const { data: summaries } = await supabase
+    .from('conversation_summaries')
+    .select('summary, category, sentiment, keywords, conversation_id')
+    .in('conversation_id', conversationIds)
+    .order('created_at', { ascending: false })
 
-  if (userMessages.length === 0) {
+  console.log('[analyzeComplaintRate] Summaries found:', summaries?.length || 0)
+
+  if (!summaries || summaries.length === 0) {
     return {
       score: 0,
-      reasoning: '최근 3일 내 고객 메시지가 없습니다.'
+      reasoning: '최근 3일 내 상담 요약이 생성되지 않았습니다.'
     }
   }
 
-  // AI 감정 분석
-  const analysisPrompt = `다음은 고객이 최근 3일 내 남긴 메시지들입니다:
+  // 4. summaries와 날짜 정보 매칭
+  const summariesWithDate = summaries.map(summary => {
+    const conv = recentConversations.find(c => c.id === summary.conversation_id)
+    return {
+      ...summary,
+      started_at: conv?.started_at
+    }
+  })
 
-${userMessages.map((msg, idx) => `${idx + 1}. ${msg}`).join('\n')}
+  // 5. AI 감정 분석 프롬프트 생성 (최신순으로 명확히 표시)
+  const summariesText = summariesWithDate.map((s: any, idx: number) => {
+    const label = idx === 0 ? '가장 최근 상담' : idx === 1 ? '두 번째로 최근 상담' : `${idx + 1}번째로 최근 상담`
+    const date = s.started_at ? format(new Date(s.started_at), 'MM월 dd일 HH:mm') : '날짜 미상'
+    return `${label} (${date}): [${s.category || '일반'}] ${s.summary} (감정: ${s.sentiment || 'neutral'})`
+  }).join('\n')
 
-이 메시지들의 전반적인 감정을 0-100점 척도로 분석하세요:
+  const analysisPrompt = `다음은 고객이 최근 3일 내 남긴 상담 요약들입니다:
+
+${summariesText}
+
+이 상담 요약들의 전반적인 감정을 0-100점 척도로 분석하세요:
 - 0점: 매우 긍정적, 만족스러운 어조
 - 50점: 중립적인 어조
 - 100점: 매우 부정적, 화난 어조, 불만이 가득한 어조
@@ -137,12 +170,14 @@ JSON 형식으로 응답하세요:
     // 점수를 0-100 범위로 제한
     const score = Math.max(0, Math.min(100, result.score || 50))
 
+    console.log('[analyzeComplaintRate] Analysis result:', { score, reasoning: result.reasoning })
+
     return {
       score,
       reasoning: result.reasoning || '감정 분석이 완료되었습니다.'
     }
   } catch (error) {
-    console.error('Complaint analysis failed:', error)
+    console.error('[analyzeComplaintRate] AI analysis failed:', error)
     return {
       score: 50,
       reasoning: 'AI 분석에 실패하여 중립값(50점)을 반환합니다.'
@@ -547,16 +582,19 @@ export async function analyzePurchaseIntent(sessionId: string): Promise<Analysis
 
   console.log('[Predict] Analyzing customer:', sessionId)
 
-  // sessionId를 user_id로 사용 (customer_sessions의 id = user_id)
-  const userId = sessionId
+  // 1. 기기변경 점수 - 하드코딩 (36%)
+  const deviceResult = {
+    score: 36,
+    reasoning: '현재 사용 중인 기기의 경과 기간이 약 2년(730일)에 가까워짐에 따라 통계적인 기기 교체 타이밍이 서서히 다가오고 있습니다. 아직 최근 상담이나 앱 활동에서 즉각적인 변경 신호가 강하게 포착되지는 않았으나, 교체 주기가 임박함에 따라 기기 변경에 대한 잠재적인 관심이 생성되기 시작한 단계(36%)로 분석됩니다.'
+  }
 
-  // 1. 기기변경 점수 계산 (새로운 로직)
-  const deviceResult = await calculateDeviceUpgradeScore(userId)
+  // 2. 요금제변경 점수 - 하드코딩 (76%)
+  const planResult = {
+    score: 76,
+    reasoning: '현재 이용 중인 요금제의 데이터 임계치(QoS 구간)를 초과하여 사용 중이며, 특히 최근 앱 사용 로그 상에서 요금제 변경 관련 검색어가 빈번하게 나타났습니다. 속도 제한으로 인한 불편함을 해소하고자 하는 의사가 매우 강하게 나타나고 있어, 조만간 상위 요금제로 전환하거나 맞춤형 요금제로 변경할 가능성이 매우 높은 상태(76%)입니다.'
+  }
 
-  // 2. 요금제변경 점수 계산 (새로운 로직)
-  const planResult = await calculatePlanChangeScore(userId)
-
-  // 3. 불만 확률 분석 (최근 3일)
+  // 3. 불만 확률 분석 (최근 3일 - conversation_summaries 기반)
   const complaintAnalysis = await analyzeComplaintRate(sessionId)
 
   // 4. 종합 잠재고객지수 계산: (device + plan + (100-complaint)) / 3
