@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { format, differenceInDays } from 'date-fns'
 import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface Message {
   id: string
@@ -279,6 +280,25 @@ export default function CustomerDetailPage() {
   }
 
   if (isLoading) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{
+          backgroundColor: 'rgba(243, 243, 245, 0.95)'
+        }}
+      >
+        <Image
+          src="/adot_loading.gif"
+          alt="Loading..."
+          width={800}
+          height={350}
+          unoptimized
+        />
+      </div>
+    )
+  }
+
+  if (false) {
     return (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
