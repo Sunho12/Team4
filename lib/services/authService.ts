@@ -15,28 +15,29 @@ export interface UserData {
 }
 
 /**
- * Simple signup - use username column for password
+ * Simple signup - use name as username
  */
 export async function signUp(data: SignUpData): Promise<void> {
   const supabase = await createServiceRoleClient()
 
-  // Check if name already exists
+  // Check if name already exists (name is used as username)
   const { data: existing } = await supabase
     .from('profiles')
     .select('id')
-    .eq('full_name', data.name)
+    .eq('username', data.name)
     .single()
 
   if (existing) {
     throw new Error('이미 사용 중인 이름입니다')
   }
 
-  // Insert new user - use username column to store password
+  // Insert new user - use name as username
   const { error } = await supabase
     .from('profiles')
     .insert({
+      username: data.name, // Name as username for login
+      password: data.password,
       full_name: data.name,
-      username: data.password, // Store password in username column
       phone_number: data.phoneNumber,
       role: 'customer',
     })
@@ -47,16 +48,16 @@ export async function signUp(data: SignUpData): Promise<void> {
 }
 
 /**
- * Simple login - check name and password (stored in username)
+ * Simple login - check name (username) and password
  */
 export async function signIn(name: string, password: string): Promise<UserData> {
   const supabase = await createServiceRoleClient()
 
   const { data: user, error } = await supabase
     .from('profiles')
-    .select('id, full_name, phone_number, role, username')
-    .eq('full_name', name)
-    .eq('username', password) // Password is in username column
+    .select('id, full_name, phone_number, role, username, password')
+    .eq('username', name) // Username is name
+    .eq('password', password) // Check password
     .single()
 
   if (error || !user) {
