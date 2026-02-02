@@ -205,7 +205,7 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto w-full">
       <div className="flex items-center justify-between p-4 border-b">
-        <h1 className="text-xl font-bold">T-world 챗봇</h1>
+        <div></div>
         <Button variant="outline" onClick={endConversation} disabled={isLoading}>
           대화 종료
         </Button>
