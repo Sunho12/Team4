@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { saveMessage } from '@/lib/services/chatService'
+import { saveMessage, getConversationMessages } from '@/lib/services/chatService'
 import { openai, MODELS } from '@/lib/ai/openai'
 import { retrieveContext } from '@/lib/ai/rag'
 import { buildChatSystemPrompt } from '@/lib/ai/prompts'
@@ -17,16 +17,27 @@ export async function POST(request: Request) {
 
     await saveMessage(conversationId, 'user', message)
 
+    // Get conversation history
+    const conversationHistory = await getConversationMessages(conversationId)
+
     const context = await retrieveContext(message)
 
     const systemPrompt = buildChatSystemPrompt(context)
 
+    // Build messages array with full conversation history
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...conversationHistory
+        .filter(msg => msg.role !== 'system')
+        .map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        })),
+    ]
+
     const response = await openai.chat.completions.create({
       model: MODELS.CHAT,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message },
-      ],
+      messages,
       temperature: 0.7,
       max_tokens: 1000,
     })

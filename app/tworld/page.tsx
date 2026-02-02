@@ -12,6 +12,8 @@ export default function TworldPage() {
   const [currentBanner, setCurrentBanner] = useState(1)
   const [showAssistant, setShowAssistant] = useState(false)
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userName, setUserName] = useState('')
 
   useEffect(() => {
     // model-viewer 스크립트 동적 로드
@@ -20,12 +22,40 @@ export default function TworldPage() {
     script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js'
     document.head.appendChild(script)
 
+    // 로그인 상태 확인
+    checkAuth()
+
     return () => {
       if (script.parentNode) {
         script.parentNode.removeChild(script)
       }
     }
   }, [])
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      if (response.ok) {
+        const data = await response.json()
+        setIsLoggedIn(true)
+        setUserName(data.user.name)
+      }
+    } catch (error) {
+      // 로그인하지 않은 상태
+      setIsLoggedIn(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/signout', { method: 'POST' })
+      setIsLoggedIn(false)
+      setUserName('')
+      window.location.reload()
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
 
   // Idle timer logic
   useEffect(() => {
@@ -823,11 +853,19 @@ export default function TworldPage() {
             <a onClick={() => setActiveModal('search')}>검색</a>
           </nav>
           <div className="user-menu">
-            <Link href="/user/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
-            {' | '}
-            <Link href="/auth/signup" style={{ textDecoration: 'none', color: 'inherit' }}>회원가입</Link>
-            {' | '}
-            <a onClick={() => setActiveModal('search')} style={{ cursor: 'pointer' }}>검색</a>
+            {isLoggedIn ? (
+              <>
+                <span style={{ fontWeight: '600', color: '#3617CE' }}>{userName}님</span>
+                {' | '}
+                <a onClick={handleSignOut} style={{ cursor: 'pointer' }}>로그아웃</a>
+              </>
+            ) : (
+              <>
+                <Link href="/user/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
+                {' | '}
+                <Link href="/auth/signup" style={{ textDecoration: 'none', color: 'inherit' }}>회원가입</Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -919,7 +957,7 @@ export default function TworldPage() {
       </footer>
 
       {/* Chatbot Button */}
-      <Link href="/user/login" className="chatbot-button">
+      <Link href={isLoggedIn ? "/chat" : "/user/login"} className="chatbot-button">
         <div className="icon">💬</div>
       </Link>
 

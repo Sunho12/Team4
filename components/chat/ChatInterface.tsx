@@ -40,23 +40,36 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
     }
   }, [conversationId])
 
-  // Check for context from Tworld page
+  // Check for context from Tworld page, or show welcome message
   useEffect(() => {
-    const context = localStorage.getItem('chatContext')
-    if (context && messages.length === 0) {
-      // Add context as initial assistant message
-      const contextMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: context,
-        created_at: new Date().toISOString(),
-      }
-      setMessages([contextMessage])
+    if (conversationId && messages.length === 0 && !isLoading) {
+      const context = localStorage.getItem('chatContext')
 
-      // Clear context after using it
-      localStorage.removeItem('chatContext')
+      let initialMessage: Message
+
+      if (context) {
+        // Add context as initial assistant message
+        initialMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: context,
+          created_at: new Date().toISOString(),
+        }
+        // Clear context after using it
+        localStorage.removeItem('chatContext')
+      } else {
+        // Add welcome message
+        initialMessage = {
+          id: 'welcome-' + crypto.randomUUID(),
+          role: 'assistant',
+          content: '안녕하세요! T-world 상담 챗봇입니다.\n어떤 업무를 도와드릴까요?',
+          created_at: new Date().toISOString(),
+        }
+      }
+
+      setMessages([initialMessage])
     }
-  }, [conversationId])
+  }, [conversationId, messages.length, isLoading])
 
   const createConversation = async () => {
     try {
@@ -192,6 +205,8 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
     )
   }
 
+  const showQuickButtons = messages.length <= 1 && !isLoading
+
   return (
     <div className="flex flex-col h-screen max-w-4xl mx-auto w-full">
       <div className="flex items-center justify-between p-4 border-b">
@@ -202,6 +217,67 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
       </div>
 
       <MessageList messages={messages} isLoading={isLoading} />
+
+      {showQuickButtons && (
+        <div className="px-4 pb-2">
+          <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto">
+            <Button
+              onClick={() => sendMessage('신규 가입')}
+              variant="outline"
+              className="h-auto py-3 border-dashed"
+            >
+              <div className="text-center w-full">
+                <div className="text-base">📱 신규 가입</div>
+              </div>
+            </Button>
+            <Button
+              onClick={() => sendMessage('요금제 변경')}
+              variant="outline"
+              className="h-auto py-3 border-dashed"
+            >
+              <div className="text-center w-full">
+                <div className="text-base">💳 요금제 변경</div>
+              </div>
+            </Button>
+            <Button
+              onClick={() => sendMessage('해지')}
+              variant="outline"
+              className="h-auto py-3 border-dashed"
+            >
+              <div className="text-center w-full">
+                <div className="text-base">📵 해지</div>
+              </div>
+            </Button>
+            <Button
+              onClick={() => sendMessage('일시정지')}
+              variant="outline"
+              className="h-auto py-3 border-dashed"
+            >
+              <div className="text-center w-full">
+                <div className="text-base">⏸️ 일시정지</div>
+              </div>
+            </Button>
+            <Button
+              onClick={() => sendMessage('T멤버십')}
+              variant="outline"
+              className="h-auto py-3 border-dashed"
+            >
+              <div className="text-center w-full">
+                <div className="text-base">🎁 T멤버십</div>
+              </div>
+            </Button>
+            <Button
+              onClick={() => sendMessage('통화내역 조회')}
+              variant="outline"
+              className="h-auto py-3 border-dashed"
+            >
+              <div className="text-center w-full">
+                <div className="text-base">📊 통화내역</div>
+              </div>
+            </Button>
+          </div>
+        </div>
+      )}
 
       <MessageInput onSend={sendMessage} disabled={isLoading} />
     </div>
