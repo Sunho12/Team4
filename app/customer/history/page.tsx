@@ -175,7 +175,7 @@ export default function HistoryPage() {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-3 text-sm">{conv.summary}</p>
+                  <p className="mb-4 text-sm leading-relaxed text-gray-700">{conv.summary}</p>
                   {conv.keywords && conv.keywords.length > 0 && (
                     <div className="flex gap-2 flex-wrap">
                       {conv.keywords.map((kw, idx) => (

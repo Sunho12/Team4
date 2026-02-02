@@ -14,6 +14,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
   const [authChecked, setAuthChecked] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const [potentialScore] = useState(85)
@@ -73,32 +74,56 @@ export default function SearchPage() {
   }
 
   const handleSearch = async () => {
-    if (!query.trim()) return
+    const trimmedQuery = query.trim()
 
+    if (!trimmedQuery) {
+      setSearchError('검색어를 입력해주세요')
+      return
+    }
+
+    console.log('🔍 Starting search with query:', trimmedQuery)
     setIsLoading(true)
     setShowDetail(false)
+    setSearchError('')
+    setResults([])
 
     try {
-      const response = await fetch(`/api/agency/search?q=${encodeURIComponent(query)}`)
+      const response = await fetch(`/api/agency/search?q=${encodeURIComponent(trimmedQuery)}`)
 
-      if (response.ok) {
-        const data = await response.json()
+      console.log('📡 API response status:', response.status)
 
-        // 실제 검색 결과 사용, 더미 값으로 누락된 필드 채우기
-        const enrichedResults = data.customers.map((customer: any, index: number) => ({
-          ...customer,
-          // 실제 데이터가 없으면 더미 값 사용
-          customer_birth: customer.customer_birth || (index === 0 ? '1990.05.20' : '1985.03.15'),
-          plan_name: customer.plan_name || (index === 0 ? '5GX 프라임플러스' : '5G 프리미어 에센셜'),
-          plan_price: customer.plan_price || (index === 0 ? 89000 : 75000),
-          bundle_type: customer.bundle_type || (index === 0 ? '온가족할인' : '유무선 결합'),
-          device_model: customer.device_model || (index === 0 ? '아이폰 15 Pro' : 'Galaxy S24 Ultra')
-        }))
-
-        setResults(enrichedResults)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || '검색에 실패했습니다')
       }
-    } catch (error) {
-      console.error('Search failed:', error)
+
+      const data = await response.json()
+      console.log('✅ Search results:', data)
+
+      if (!data.customers || data.customers.length === 0) {
+        setSearchError('검색 결과가 없습니다')
+        setResults([])
+        return
+      }
+
+      // 실제 검색 결과 사용, 더미 값으로 누락된 필드 채우기
+      const enrichedResults = data.customers.map((customer: any, index: number) => ({
+        ...customer,
+        // 실제 데이터가 없으면 더미 값 사용
+        customer_birth: customer.customer_birth || '정보 없음',
+        plan_name: customer.plan_name || '정보 없음',
+        plan_price: customer.plan_price || 0,
+        bundle_type: customer.bundle_type || '없음',
+        device_model: customer.device_model || '정보 없음'
+      }))
+
+      setResults(enrichedResults)
+      setSearchError('')
+
+    } catch (error: any) {
+      console.error('❌ Search failed:', error)
+      setSearchError(error.message || '검색 중 오류가 발생했습니다')
+      setResults([])
     } finally {
       setIsLoading(false)
     }
@@ -287,8 +312,8 @@ export default function SearchPage() {
       <div className="flex-1 overflow-auto">
         <div className="max-w-7xl mx-auto p-6 space-y-6">
         {/* 헤더 */}
-        <div className="mb-8">
-          {activeMenu !== 'search' && activeMenu !== 'home' && (
+        {(activeMenu === 'notice' || activeMenu === 'policy') && (
+          <div className="mb-8">
             <button
               onClick={() => setActiveMenu('search')}
               className="flex items-center gap-2 text-gray-600 hover:text-[#3617CE] mb-4 transition-colors"
@@ -296,19 +321,17 @@ export default function SearchPage() {
             >
               ← 뒤로가기 (대시보드)
             </button>
-          )}
-          <h1
-            className="text-5xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent mb-2"
-            style={{ fontFamily: "'SK Mobius', sans-serif" }}
-          >
-            {activeMenu === 'notice' ? '공지사항' : activeMenu === 'policy' ? '정책 센터' : '스마트 AI 대시보드'}
-          </h1>
-          <p className="text-gray-600">
-            {activeMenu === 'notice' ? '중요 공지사항과 업데이트 내용을 확인하세요' :
-             activeMenu === 'policy' ? '최신 정책 정보와 변경사항을 확인하세요' :
-             '실시간 고객 분석과 AI 기반 상담 지원 시스템'}
-          </p>
-        </div>
+            <h1
+              className="text-5xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent mb-2"
+              style={{ fontFamily: "'SK Mobius', sans-serif" }}
+            >
+              {activeMenu === 'notice' ? '공지사항' : '정책 센터'}
+            </h1>
+            <p className="text-gray-600">
+              {activeMenu === 'notice' ? '중요 공지사항과 업데이트 내용을 확인하세요' : '최신 정책 정보와 변경사항을 확인하세요'}
+            </p>
+          </div>
+        )}
 
         {/* 공지사항 페이지 */}
         {activeMenu === 'notice' && (
@@ -688,20 +711,33 @@ export default function SearchPage() {
             <Input
               placeholder="고객 이름 또는 전화번호로 검색하세요..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setSearchError('')
+              }}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               className="pl-12 pr-32 h-14 rounded-xl border-2 border-gray-200 focus:border-[#3617CE] focus:ring-2 focus:ring-[#3617CE]/20 transition-all text-base"
             />
             <Button
               onClick={handleSearch}
-              disabled={isLoading}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-6 rounded-lg text-white shadow-md"
+              disabled={isLoading || !query.trim()}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 px-6 rounded-lg text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: '#EA002C' }}
             >
               <Search className="h-4 w-4 mr-2" />
               {isLoading ? '검색 중...' : '검색'}
             </Button>
           </div>
+
+          {/* 검색 에러 메시지 */}
+          {searchError && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Search className="w-4 h-4 text-red-600" />
+              </div>
+              <p className="text-sm text-red-700 font-medium">{searchError}</p>
+            </div>
+          )}
 
           {/* 최근 상담 고객 */}
           {!showDetail && (
