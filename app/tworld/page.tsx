@@ -139,7 +139,8 @@ export default function TworldPage() {
   const handleAssistantClick = () => {
     const context = getContextMessage()
     localStorage.setItem('chatContext', context)
-    window.location.href = '/user/login'
+    // 로그인 상태면 챗봇으로, 아니면 로그인 페이지로
+    window.location.href = isLoggedIn ? '/chat' : '/user/login'
   }
 
   // 멤버십 혜택 데이터
