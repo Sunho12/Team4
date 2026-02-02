@@ -200,7 +200,7 @@ export default function TworldPage() {
       </footer>
 
       {/* Chatbot Button */}
-      <Link href="/chat" className="chatbot-button">
+      <Link href="/user/login" className="chatbot-button">
         <div className="icon">💬</div>
       </Link>
 
