@@ -18,11 +18,12 @@ export default function SearchPage() {
   const [authChecked, setAuthChecked] = useState(false)
   const [showDetail, setShowDetail] = useState(false)
   const [potentialScore] = useState(85)
-  const [activeMenu, setActiveMenu] = useState('search')
+  const [activeMenu, setActiveMenu] = useState('home')
   const [activePolicy, setActivePolicy] = useState('device')
   const [selectedNotice, setSelectedNotice] = useState<any>(null)
   const [noticeFilter, setNoticeFilter] = useState('all')
   const [noticeSearchQuery, setNoticeSearchQuery] = useState('')
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
     checkAuth()
@@ -46,6 +47,7 @@ export default function SearchPage() {
         return
       }
 
+      setCurrentUser(data.user)
       setAuthChecked(true)
     } catch (error) {
       router.push('/auth/login?mode=agency&returnUrl=/search')
@@ -73,8 +75,8 @@ export default function SearchPage() {
     )
   }
 
-  const handleSearch = async () => {
-    const trimmedQuery = query.trim()
+  const handleSearch = async (searchQuery?: string) => {
+    const trimmedQuery = (searchQuery || query).trim()
 
     if (!trimmedQuery) {
       setSearchError('검색어를 입력해주세요')
@@ -86,6 +88,11 @@ export default function SearchPage() {
     setShowDetail(false)
     setSearchError('')
     setResults([])
+
+    // 검색어를 query state에 반영
+    if (searchQuery) {
+      setQuery(searchQuery)
+    }
 
     try {
       const response = await fetch(`/api/agency/search?q=${encodeURIComponent(trimmedQuery)}`)
@@ -131,16 +138,17 @@ export default function SearchPage() {
 
   const menuItems = [
     { id: 'home', icon: Home, label: '대시보드 홈' },
-    { id: 'search', icon: Search, label: '고객 검색' },
     { id: 'policy', icon: Folder, label: '정책 센터' },
     { id: 'notice', icon: Bell, label: '공지사항' },
     { id: 'settings', icon: Settings, label: '설정' },
   ]
 
   const recentCustomers = [
-    { name: '김철수', phone: '5678', time: '10분 전' },
-    { name: '이영희', phone: '1234', time: '25분 전' },
-    { name: '박민수', phone: '9012', time: '1시간 전' },
+    { name: '곽선호', phone: '5678', time: '10분 전' },
+    { name: '이원준', phone: '1234', time: '25분 전' },
+    { name: '최목원', phone: '9012', time: '1시간 전' },
+    { name: '이우석', phone: '3456', time: '2시간 전' },
+    { name: '송영진', phone: '7890', time: '3시간 전' },
   ]
 
   const notices = [
@@ -252,12 +260,6 @@ export default function SearchPage() {
         className="w-60 min-h-screen flex flex-col shadow-2xl"
         style={{ backgroundColor: '#3617CE' }}
       >
-        {/* 로고 영역 */}
-        <div className="p-6 border-b border-white/10">
-          <h1 className="text-white text-xl font-bold">T-Bridge</h1>
-          <p className="text-white/70 text-xs mt-1">AI Dashboard</p>
-        </div>
-
         {/* 메뉴 */}
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
@@ -301,8 +303,8 @@ export default function SearchPage() {
               <User className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-white text-sm font-semibold">SKT 크루</p>
-              <p className="text-white/60 text-xs">직원 ID: A1234</p>
+              <p className="text-white text-sm font-semibold">{currentUser?.name || 'SKT 크루'}</p>
+              <p className="text-white/60 text-xs">직원 ID: {currentUser?.id?.slice(0, 8).toUpperCase() || 'A1234'}</p>
             </div>
           </div>
         </div>
@@ -747,10 +749,7 @@ export default function SearchPage() {
                 {recentCustomers.map((customer, index) => (
                   <button
                     key={index}
-                    onClick={() => {
-                      setQuery(customer.phone)
-                      handleSearch()
-                    }}
+                    onClick={() => handleSearch(customer.name)}
                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-xl border border-blue-200/50 transition-all"
                   >
                     <User className="w-4 h-4 text-blue-600" />
