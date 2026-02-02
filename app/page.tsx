@@ -121,7 +121,7 @@ export default function Home() {
 
           {/* 오른쪽 - 대리점용 카드 */}
           <Link
-            href="/auth/login"
+            href="/search/login"
             className="group relative flex items-center justify-center p-8 transition-all duration-300"
           >
             {/* 하이엔드 글래스모피즘 카드 */}
