@@ -55,6 +55,7 @@ export default function CustomerDetailPage() {
   const [showUrgentAlert, setShowUrgentAlert] = useState(false)
   const [latestConsultation, setLatestConsultation] = useState<string>('')
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [isRefreshingServices, setIsRefreshingServices] = useState(false)
 
   // 각 지표 토글 상태
   const [toggleStates, setToggleStates] = useState({
@@ -306,36 +307,84 @@ export default function CustomerDetailPage() {
         }
 
         if (data.planChangeScore > 50) {
-          // 요금제 변경 - 구체적인 추천 형식으로 변경
-          let planRecommendation = {
-            title: '맞춤 요금제 추천',
-            description: '',
-            priority: data.planChangeScore > 70 ? 'high' : 'medium',
-            confidence: data.planChangeScore,
-            type: 'plan',
-            options: [] as { name: string; description: string }[]
-          }
+          // 요금제 변경 - 상세한 추천 형식으로 변경
+          const planRecommendations = []
 
           // 점수에 따라 다른 추천 제공
           if (data.planChangeScore >= 70) {
-            // 높은 변경 확률 - 데이터 사용량 초과 추정
-            planRecommendation.description = '데이터 사용량 초과 니즈에 맞는 요금제를 추천해보세요'
-            planRecommendation.options = [
-              { name: '5G 프리미엄 플러스', description: '무제한 데이터 + 최고 속도 보장' },
-              { name: '5G 프리미엄', description: '100GB + 프리미엄 혜택' },
-              { name: '5G 스탠다드', description: '50GB + 합리적인 가격' }
-            ]
-          } else if (data.planChangeScore >= 50) {
-            // 중간 변경 확률 - 요금 절감 또는 최적화 추정
-            planRecommendation.description = '합리적인 요금 절감 니즈에 맞는 요금제를 추천해보세요'
-            planRecommendation.options = [
-              { name: '5G 스탠다드', description: '50GB + 적정 가격대' },
-              { name: '5G 라이트', description: '30GB + 경제적' },
-              { name: '데이터 ON 비디오', description: '동영상 무제한 특화' }
-            ]
+            // 추천 1: 5G 프리미엄 플러스
+            planRecommendations.push({
+              rank: 1,
+              name: '5G 프리미엄 플러스',
+              score: Math.min(95, data.planChangeScore + Math.floor(Math.random() * 10)),
+              customerNeed: '데이터 무제한을 원하시며, 현재 온가족할인 30% 대상자입니다.',
+              bestOffer: '요금제 상향 시 기기값 할부금이 0원이 되는 공시지원금 상향 정책 적용 모델입니다.',
+              revenue: {
+                commission: 450000,
+                increase: 50000,
+                additionalPolicy: '우주패스 life 가입 시 유지 수수료 건당 5,000원 추가 지급'
+              }
+            })
+
+            // 추천 2: 5G 프리미엄
+            planRecommendations.push({
+              rank: 2,
+              name: '5G 프리미엄',
+              score: Math.min(90, data.planChangeScore + Math.floor(Math.random() * 5)),
+              customerNeed: '매월 80~90GB를 사용하시어 현재 요금제에서 데이터 초과 직전입니다.',
+              bestOffer: '데이터 안심 옵션보다 5,000원만 더 내면 100GB를 쓰는 것이 장기적으로 훨씬 이득입니다.',
+              revenue: {
+                commission: 380000,
+                performance: '고가 요금제 유치 목표(현재 85% 달성) 달성 시 건당 가중치 1.2배 적용'
+              }
+            })
+
+            // 추천 3: 0 청년 69
+            planRecommendations.push({
+              rank: 3,
+              name: '0 청년 69',
+              score: Math.min(85, data.planChangeScore),
+              customerNeed: '만 34세 이하 고객으로, 커피/영화 등 생활 밀착형 혜택 선호도가 높습니다.',
+              bestOffer: '일반 요금제보다 데이터 2배 제공 정책이 적용되는 청년 전용 요금제로 만족도를 높이세요.',
+              revenue: {
+                commission: 320000,
+                longTermBenefit: '청년 고객 유치 시 향후 기변 정책 가중치 부여 대상'
+              }
+            })
+          } else {
+            // 중간 점수 - 경제형 요금제 추천
+            planRecommendations.push({
+              rank: 1,
+              name: '5G 스탠다드',
+              score: Math.min(80, data.planChangeScore + 5),
+              customerNeed: '현재 요금제 대비 데이터를 10GB 더 사용하시는 패턴이 관찰됩니다.',
+              bestOffer: '월 5천원 추가로 데이터 걱정 없이 사용하실 수 있습니다.',
+              revenue: {
+                commission: 280000,
+                performance: '중급 요금제 유치 목표 달성 시 인센티브 지급'
+              }
+            })
+
+            planRecommendations.push({
+              rank: 2,
+              name: '5G 라이트',
+              score: Math.min(75, data.planChangeScore),
+              customerNeed: '데이터 사용량이 적고 요금 절감을 원하시는 것으로 분석됩니다.',
+              bestOffer: '현재 요금제 대비 월 1만원 절감 가능합니다.',
+              revenue: {
+                commission: 220000,
+                additionalPolicy: '요금제 하향 시에도 수수료 지급 정책 적용'
+              }
+            })
           }
 
-          services.push(planRecommendation)
+          services.push({
+            title: '맞춤 요금제 추천',
+            priority: data.planChangeScore > 70 ? 'high' : 'medium',
+            confidence: data.planChangeScore,
+            type: 'plan',
+            recommendations: planRecommendations
+          })
         }
 
         if (services.length === 0) {
@@ -408,6 +457,18 @@ export default function CustomerDetailPage() {
       default:
         return '중립적'
     }
+  }
+
+  const refreshServices = async () => {
+    setIsRefreshingServices(true)
+
+    // 시뮬레이션: 2초 대기
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    // AI 분석 다시 실행
+    await analyzeCustomer()
+
+    setIsRefreshingServices(false)
   }
 
   if (isLoading) {
@@ -1438,48 +1499,147 @@ export default function CustomerDetailPage() {
 
           {/* [구획 라] 예상 필요 서비스 */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Target className="w-6 h-6 text-[#EA002C]" />
-              예상 필요 서비스
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Target className="w-6 h-6 text-[#EA002C]" />
+                예상 필요 서비스
+              </h2>
+              <button
+                onClick={refreshServices}
+                disabled={isRefreshingServices}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  isRefreshingServices
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] text-white hover:shadow-lg hover:scale-105'
+                }`}
+              >
+                {isRefreshingServices ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span>우리 대리점 최신 정책 적용 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>정책 새로고침</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {predictedServices.map((service, index) => (
-                <div
-                  key={index}
-                  className={`bg-gradient-to-br ${
-                    service.priority === 'high'
-                      ? 'from-red-50 to-pink-50 border-red-200'
-                      : 'from-blue-50 to-cyan-50 border-blue-200'
-                  } rounded-2xl p-6 border`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">{service.title}</h3>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
-                      <CheckCircle className="w-4 h-4" />
-                      {service.confidence}%
+                <div key={index}>
+                  {/* 기기 변경 서비스 (기존 형식 유지) */}
+                  {service.type === 'device' && (
+                    <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-6 border border-red-200">
+                      <div className="flex items-start justify-between mb-3">
+                        <h3 className="text-lg font-bold text-gray-900">{service.title}</h3>
+                        <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
+                          <CheckCircle className="w-4 h-4" />
+                          {service.confidence}%
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700 leading-relaxed mb-3">
+                        {service.description}
+                      </p>
+                      <Badge className="bg-[#EA002C] text-white">우선 제안</Badge>
                     </div>
-                  </div>
-                  <p className="text-sm text-gray-700 leading-relaxed mb-3">
-                    {service.description}
-                  </p>
+                  )}
 
-                  {/* 요금제 선택지 표시 */}
-                  {service.type === 'plan' && service.options && service.options.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">추천 요금제</p>
-                      {service.options.map((option: any, optIdx: number) => (
+                  {/* 요금제 추천 서비스 (새 형식) */}
+                  {service.type === 'plan' && service.recommendations && (
+                    <div className="space-y-4">
+                      {service.recommendations.map((rec: any, recIdx: number) => (
                         <div
-                          key={optIdx}
-                          className="bg-white rounded-xl p-4 border border-gray-200 hover:border-[#3617CE] hover:shadow-md transition-all cursor-pointer"
+                          key={recIdx}
+                          className={`bg-gradient-to-br rounded-2xl p-6 border-2 transition-all hover:shadow-lg ${
+                            rec.rank === 1
+                              ? 'from-red-50 via-orange-50 to-yellow-50 border-red-300'
+                              : rec.rank === 2
+                              ? 'from-blue-50 via-indigo-50 to-purple-50 border-blue-300'
+                              : 'from-green-50 via-teal-50 to-cyan-50 border-green-300'
+                          }`}
                         >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="text-sm font-bold text-gray-900">{option.name}</h4>
-                              <p className="text-xs text-gray-600 mt-1">{option.description}</p>
+                          {/* 헤더 */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                                rec.rank === 1 ? 'bg-gradient-to-br from-red-500 to-orange-500' :
+                                rec.rank === 2 ? 'bg-gradient-to-br from-blue-500 to-indigo-500' :
+                                'bg-gradient-to-br from-green-500 to-teal-500'
+                              }`}>
+                                {rec.rank}
+                              </div>
+                              <div>
+                                <h3 className="text-xl font-bold text-gray-900">{rec.name}</h3>
+                                <p className="text-xs text-gray-600 mt-0.5">추천 순위 {rec.rank}위</p>
+                              </div>
                             </div>
-                            <div className="text-xs text-[#3617CE] font-semibold">
-                              제안하기 →
+                            <div className="flex flex-col items-end">
+                              <div className="flex items-center gap-1 mb-1">
+                                <div className="text-2xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent">
+                                  {rec.score}%
+                                </div>
+                              </div>
+                              <span className="text-xs text-gray-600">매칭 점수</span>
+                            </div>
+                          </div>
+
+                          {/* 고객 니즈 */}
+                          <div className="mb-4 p-4 bg-white/70 rounded-xl border border-gray-200">
+                            <p className="text-xs font-semibold text-gray-600 mb-2">🎯 고객 니즈</p>
+                            <p className="text-sm text-gray-800 leading-relaxed">
+                              {rec.customerNeed}
+                            </p>
+                          </div>
+
+                          {/* 최적 제안 */}
+                          <div className="mb-4 p-4 bg-white/70 rounded-xl border border-blue-200">
+                            <p className="text-xs font-semibold text-blue-700 mb-2">💡 최적 제안</p>
+                            <p className="text-sm text-gray-800 leading-relaxed font-medium">
+                              "{rec.bestOffer}"
+                            </p>
+                          </div>
+
+                          {/* 대리점 수익 */}
+                          <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                            <p className="text-xs font-semibold text-green-700 mb-3">💰 대리점 수익</p>
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-700">판매 장려금 (리베이트)</span>
+                                <span className="text-lg font-bold text-green-700">
+                                  {rec.revenue.commission.toLocaleString()}원
+                                  {rec.revenue.increase && (
+                                    <span className="text-xs text-red-600 ml-2">
+                                      (전주 대비 +{rec.revenue.increase.toLocaleString()}원)
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              {rec.revenue.additionalPolicy && (
+                                <div className="pt-2 border-t border-green-200">
+                                  <p className="text-xs text-gray-600">
+                                    <span className="font-semibold">부가 정책:</span> {rec.revenue.additionalPolicy}
+                                  </p>
+                                </div>
+                              )}
+                              {rec.revenue.performance && (
+                                <div className="pt-2 border-t border-green-200">
+                                  <p className="text-xs text-gray-600">
+                                    <span className="font-semibold">성과 인센티브:</span> {rec.revenue.performance}
+                                  </p>
+                                </div>
+                              )}
+                              {rec.revenue.longTermBenefit && (
+                                <div className="pt-2 border-t border-green-200">
+                                  <p className="text-xs text-gray-600">
+                                    <span className="font-semibold">장기 혜택:</span> {rec.revenue.longTermBenefit}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1487,17 +1647,23 @@ export default function CustomerDetailPage() {
                     </div>
                   )}
 
-                  {service.priority === 'high' && (
-                    <Badge className="bg-[#EA002C] text-white mt-3">우선 제안</Badge>
+                  {/* 유지 관리 서비스 */}
+                  {service.type === 'maintenance' && (
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+                      <h3 className="text-lg font-bold text-gray-900 mb-3">{service.title}</h3>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        {service.description}
+                      </p>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
 
-            <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
-              <div className="flex items-center gap-2 text-sm text-green-800">
+            <div className="mt-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+              <div className="flex items-center gap-2 text-sm text-purple-800">
                 <CheckCircle className="w-4 h-4" />
-                <span className="font-semibold">AI가 고객의 잠재적 니즈를 분석하여 제안합니다.</span>
+                <span className="font-semibold">AI가 고객 니즈와 대리점 정책을 종합 분석하여 최적의 제안을 생성합니다.</span>
               </div>
             </div>
           </div>
