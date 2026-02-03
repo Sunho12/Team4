@@ -7,60 +7,85 @@ import { searchSKTStores, formatStoreResults } from '@/lib/utils/storeSearch'
 
 /**
  * 대리점 검색 요청 감지
- * - 이전 메시지에 대리점 관련 키워드가 있고
- * - 현재 메시지가 지역명으로 보이는 경우
+ * - 사용자가 명시적으로 대리점/매장을 찾는 경우
+ * - 챗봇이 "대리점 추천해드릴까요?" 또는 "지역을 알려주세요" 질문을 한 경우
  */
 function shouldSearchStores(recentMessages: any[], currentMessage: string): boolean {
-  // 최근 5개 메시지 확인 (더 넓은 컨텍스트)
-  const recentContent = recentMessages
-    .slice(-5)
-    .map(m => m.content)
-    .join(' ')
-
-  // 대리점 추천 관련 키워드 확장
-  const hasStoreKeyword =
-    recentContent.includes('대리점') ||
-    recentContent.includes('지역') ||
-    recentContent.includes('추천') ||
-    recentContent.includes('근처') ||
-    recentContent.includes('위치') ||
-    recentContent.includes('어디') ||
-    recentContent.includes('어느')
+  // 최근 3개 메시지만 확인
+  const lastAssistantMessage = recentMessages
+    .filter(m => m.role === 'assistant')
+    .slice(-1)[0]?.content || ''
 
   // 사용자가 거부 의사를 표현했는지 확인
   const isRejection =
     currentMessage.includes('아니') ||
     currentMessage.includes('괜찮') ||
     currentMessage.includes('됐') ||
-    currentMessage.includes('필요없')
+    currentMessage.includes('필요없') ||
+    currentMessage.includes('안 할게') ||
+    currentMessage.includes('안할게')
 
-  // 현재 메시지가 지역명으로 보이는지 (개선된 로직)
-  const looksLikeLocation =
-    currentMessage.length < 50 && // 길이 제한 완화
-    !currentMessage.includes('?') && // 질문이 아님
-    !currentMessage.includes('네') && // "네"가 아님
-    !isRejection && // 거부 의사가 아님
+  // 실제 한국 지역명 패턴
+  const isValidLocation =
+    currentMessage.length >= 2 &&
+    currentMessage.length < 50 &&
+    !currentMessage.includes('?') &&
+    !isRejection &&
     (
-      // 한글 지역 패턴 매칭
-      currentMessage.includes('동') ||
-      currentMessage.includes('구') ||
-      currentMessage.includes('시') ||
-      currentMessage.includes('군') ||
-      currentMessage.includes('로') ||
-      currentMessage.includes('가') ||
-      currentMessage.includes('역') ||
-      // 또는 대부분이 한글로만 구성
-      (/^[가-힣\s\d-]+$/.test(currentMessage) && currentMessage.length >= 2)
+      // 지역명으로 끝나는 패턴
+      /[가-힣]+(동|구|시|군|읍|면|역|로|길|가|리)/.test(currentMessage) ||
+      // "강남역", "이촌1동" 같은 패턴
+      /[가-힣]+\d*[동구시군역]/.test(currentMessage) ||
+      // "서울", "부산" 같은 광역시명
+      /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)/.test(currentMessage)
     )
 
+  // 사용자가 직접 대리점/매장을 찾는 키워드를 포함하는 경우
+  const userAskedForStore =
+    (currentMessage.includes('대리점') ||
+     currentMessage.includes('매장') ||
+     currentMessage.includes('지점') ||
+     currentMessage.includes('샵') ||
+     currentMessage.includes('SKT') ||
+     currentMessage.includes('티월드')) &&
+    (currentMessage.includes('찾') ||
+     currentMessage.includes('어디') ||
+     currentMessage.includes('위치') ||
+     currentMessage.includes('추천') ||
+     currentMessage.includes('알려') ||
+     currentMessage.includes('보여') ||
+     isValidLocation)
+
+  // 챗봇이 대리점 추천이나 위치 질문을 했는지 확인
+  const botAskedForLocation =
+    (lastAssistantMessage.includes('대리점') && (
+      lastAssistantMessage.includes('추천') ||
+      lastAssistantMessage.includes('안내') ||
+      lastAssistantMessage.includes('찾아') ||
+      lastAssistantMessage.includes('방문')
+    )) ||
+    (lastAssistantMessage.includes('?') && (
+      lastAssistantMessage.includes('어느 지역') ||
+      lastAssistantMessage.includes('어디') ||
+      lastAssistantMessage.includes('지역이신가요') ||
+      lastAssistantMessage.includes('위치')
+    ))
+
+  // 챗봇이 물어보고 사용자가 지역명을 대답한 경우
+  const respondedWithLocation = botAskedForLocation && isValidLocation && !isRejection
+
   console.log('Store search check:', {
-    hasStoreKeyword,
-    looksLikeLocation,
+    userAskedForStore,
+    botAskedForLocation,
+    respondedWithLocation,
+    isValidLocation,
     isRejection,
-    message: currentMessage
+    message: currentMessage,
+    lastAssistantMsg: lastAssistantMessage.substring(0, 100)
   })
 
-  return hasStoreKeyword && looksLikeLocation && !isRejection
+  // 사용자가 직접 요청했거나, 챗봇이 물어보고 지역명으로 대답한 경우
+  return (userAskedForStore || respondedWithLocation) && !isRejection
 }
 
 export async function POST(request: Request) {
@@ -131,8 +156,11 @@ export async function POST(request: Request) {
     if (shouldSearch && storeSearchResults) {
       // 실제 검색된 대리점 정보를 함께 반환
       const stores = await searchSKTStores(message)
-      responseData.stores = stores
-      responseData.searchLocation = message
+      // 검색 결과가 실제로 있을 때만 모달 표시
+      if (stores && stores.length > 0) {
+        responseData.stores = stores
+        responseData.searchLocation = message
+      }
     }
 
     return NextResponse.json(responseData)

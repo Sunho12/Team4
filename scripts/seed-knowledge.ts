@@ -1995,6 +1995,104 @@ const knowledgeDocuments = [
       sms: '기본 제공',
       benefits: [],
     },
+  },
+  {
+    content: '베스킨라빈스 아이스크림 20% 할인',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: '베스킨라빈스 20% 할인',
+      category: '음식·카페',
+      discount_type: 'percentage',
+      amount: 20,
+      applicable_item: '아이스크림',
+    },
+  },
+  {
+    content: '공차 음료 1+1 쿠폰',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: '공차 음료 1+1',
+      category: '음식·카페',
+      discount_type: 'coupon',
+      coupon_detail: '음료 1+1',
+    },
+  },
+  {
+    content: '파리바게뜨 케이크 15% 할인',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: '파리바게뜨 15% 할인',
+      category: '베이커리·디저트',
+      discount_type: 'percentage',
+      amount: 15,
+      applicable_item: '케이크',
+    },
+  },
+  {
+    content: '세븐일레븐 3,000원 할인 쿠폰',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: '세븐일레븐 할인 쿠폰',
+      category: '편의점',
+      discount_type: 'fixed_amount',
+      amount: 3000,
+      coupon_detail: '3,000원 할인',
+    },
+  },
+  {
+    content: 'CU 5,000원 할인 쿠폰',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: 'CU 할인 쿠폰',
+      category: '편의점',
+      discount_type: 'fixed_amount',
+      amount: 5000,
+      coupon_detail: '5,000원 할인',
+    },
+  },
+  {
+    content: '이마트 10,000원 상품권',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: '이마트 상품권',
+      category: '쇼핑·마트',
+      discount_type: 'gift',
+      amount: 10000,
+      gift_type: '상품권',
+    },
+  },
+  {
+    content: 'CGV 영화 2,000원 할인',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: 'CGV 영화 할인',
+      category: '영화·엔터테인먼트',
+      discount_type: 'fixed_amount',
+      amount: 2000,
+      applicable_item: '영화 티켓',
+    },
+  },
+  {
+    content: '롯데월드 자유이용권 30% 할인',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: '롯데월드 자유이용권 30% 할인',
+      category: '테마파크',
+      discount_type: 'percentage',
+      amount: 30,
+      applicable_item: '자유이용권',
+    },
+  },
+  {
+    content: 'SK 렌터카 20% 할인',
+    document_type: 'membership_benefit',
+    metadata: {
+      benefit_name: 'SK 렌터카 20% 할인',
+      category: '렌터카',
+      discount_type: 'percentage',
+      amount: 20,
+      applicable_item: null,
+    },
   }
 ]
 
