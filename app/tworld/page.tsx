@@ -10,6 +10,7 @@ export default function TworldPage() {
   const [activeModal, setActiveModal] = useState<ModalType>(null)
   const [activeTab, setActiveTab] = useState<'eat' | 'buy' | 'play'>('eat')
   const [currentBanner, setCurrentBanner] = useState(1)
+  const [currentTDirectBanner, setCurrentTDirectBanner] = useState(1)
   const [showAssistant, setShowAssistant] = useState(false)
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
@@ -59,14 +60,26 @@ export default function TworldPage() {
     }
   }
 
-  // Idle timer logic
+  // 초기 페이지 로드 시 웰컴 메시지 (2.5초 후)
+  useEffect(() => {
+    const welcomeTimer = setTimeout(() => {
+      if (!activeModal) {
+        console.log('[DEBUG] Showing welcome assistant')
+        setShowAssistant(true)
+      }
+    }, 2500)
+
+    return () => clearTimeout(welcomeTimer)
+  }, [])
+
+  // Idle timer logic (모달용)
   useEffect(() => {
     console.log('[DEBUG] Modal changed:', activeModal)
 
-    // 모달이 없으면 assistant 숨김
+    // 모달이 없으면 웰컴 assistant로 복귀
     if (!activeModal) {
-      console.log('[DEBUG] No modal, hiding assistant')
-      setShowAssistant(false)
+      console.log('[DEBUG] No modal, showing welcome assistant')
+      setShowAssistant(true)
       if (idleTimerRef.current) {
         clearTimeout(idleTimerRef.current)
         idleTimerRef.current = null
@@ -83,9 +96,9 @@ export default function TworldPage() {
       }
 
       idleTimerRef.current = setTimeout(() => {
-        console.log('[DEBUG] 5 seconds passed, showing assistant')
+        console.log('[DEBUG] 2.5 seconds passed, showing assistant')
         setShowAssistant(true)
-      }, 2500) // 5초
+      }, 2500)
     }
 
     // 초기 타이머 시작
@@ -123,6 +136,15 @@ export default function TworldPage() {
     return () => clearInterval(interval)
   }, [])
 
+  // T 다이렉트샵 배너 자동 슬라이드 (4.5초마다)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTDirectBanner(prev => prev === 2 ? 1 : 2)
+    }, 4500)
+
+    return () => clearInterval(interval)
+  }, [])
+
   // 모달 닫기
   const closeModal = () => setActiveModal(null)
 
@@ -132,6 +154,11 @@ export default function TworldPage() {
 
   // 말풍선에 표시할 메시지 (공손하고 긴 메시지)
   const getSpeechBubbleMessage = (): string => {
+    // 모달이 없을 때는 초기 환영 메시지
+    if (!activeModal) {
+      return '안녕하세요, 고객님! 무엇을 도와드릴까요?'
+    }
+
     const bubbleMap: Record<string, string> = {
       'usage': '실시간 사용량을 확인하고 계시네요! 데이터 요금제나 추가 옵션에 대해 궁금하신 점이 있으신가요?',
       'plan': '요금제 변경을 고려하고 계시군요! 고객님께 최적의 요금제를 추천해드릴 수 있어요.',
@@ -143,11 +170,16 @@ export default function TworldPage() {
       'search': '무엇을 찾고 계신가요? 제가 도와드릴 수 있어요!'
     }
 
-    return activeModal ? bubbleMap[activeModal] || '무엇을 도와드릴까요?' : '무엇을 도와드릴까요?'
+    return bubbleMap[activeModal] || '무엇을 도와드릴까요?'
   }
 
   // 챗봇에 보낼 메시지 (짧고 간단한 메시지)
   const getChatMessage = (): string => {
+    // 모달이 없을 때는 빈 문자열 (일반 상담)
+    if (!activeModal) {
+      return ''
+    }
+
     const chatMap: Record<string, string> = {
       'usage': '실시간 사용량 확인',
       'plan': '요금제 변경 상담',
@@ -159,13 +191,17 @@ export default function TworldPage() {
       'search': '검색 도움'
     }
 
-    return activeModal ? chatMap[activeModal] || '상담 문의' : '상담 문의'
+    return chatMap[activeModal] || '상담 문의'
   }
 
   // Assistant 클릭 핸들러
   const handleAssistantClick = () => {
     const chatMessage = getChatMessage()
-    localStorage.setItem('chatContext', chatMessage)
+    if (chatMessage) {
+      localStorage.setItem('chatContext', chatMessage)
+    } else {
+      localStorage.removeItem('chatContext')
+    }
     // 로그인 상태면 챗봇으로, 아니면 로그인 페이지로
     window.location.href = isLoggedIn ? '/chat' : '/user/login'
   }
@@ -215,9 +251,12 @@ export default function TworldPage() {
         .tworld-header { background: #fff; border-bottom: 1px solid var(--border-light); height: 72px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-inner { width: 100%; max-width: 1080px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
         .logo { display: flex; align-items: center; cursor: pointer; }
-        .nav { display: flex; gap: 40px; }
-        .nav a { text-decoration: none; color: var(--text-black); font-size: 17px; font-weight: 600; cursor: pointer; }
-        .nav a:hover { color: var(--t-blue); }
+        .nav { display: flex; gap: 32px; align-items: center; margin-left: 60px; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; text-decoration: none; transition: all 0.3s ease; }
+        .nav-item:hover { transform: translateY(-2px); }
+        .nav-item img { width: 40px; height: 40px; object-fit: contain; }
+        .nav-item span { font-size: 13px; font-weight: 600; color: var(--text-black); }
+        .nav-item:hover span { color: var(--t-blue); }
         .user-menu { font-size: 14px; color: var(--text-gray); }
 
         /* Main Section */
@@ -237,6 +276,16 @@ export default function TworldPage() {
         .banner h3 { font-size: 28px; margin-bottom: 12px; font-weight: 700; line-height: 1.3; }
         .banner p { font-size: 16px; opacity: 0.9; }
         .banner .btn-white { display: inline-block; margin-top: 24px; background: #fff; color: var(--t-blue); padding: 12px 24px; border-radius: 30px; font-weight: 700; text-decoration: none; font-size: 15px; cursor: pointer; }
+
+        /* T Direct Shop Banner */
+        .tdirect-banner-container { position: relative; width: 100%; margin-bottom: 48px; }
+        .tdirect-banner-wrapper { position: relative; width: 100%; height: 350px; border-radius: 24px; overflow: hidden; }
+        .tdirect-banner-image { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.5s ease; cursor: pointer; }
+        .tdirect-more-btn { position: absolute; bottom: 20px; right: 20px; background: rgba(255, 255, 255, 0.95); color: var(--t-blue); padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 700; text-decoration: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.3s ease; z-index: 10; display: inline-flex; align-items: center; gap: 6px; }
+        .tdirect-more-btn:hover { background: white; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); }
+        .tdirect-dots { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 10; }
+        .tdirect-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.5); cursor: pointer; transition: all 0.3s ease; }
+        .tdirect-dot.active { width: 20px; border-radius: 4px; background: white; }
 
         /* Info Grid */
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
@@ -1084,11 +1133,22 @@ export default function TworldPage() {
             />
           </Link>
           <nav className="nav">
-            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>초기화면</Link>
-            <a href="https://shop.tworld.co.kr/shop/main?referrer=" target="_blank" rel="noopener noreferrer">T 다이렉트샵</a>
-            <Link href="/customer/history" style={{ textDecoration: 'none', color: 'inherit' }}>MY</Link>
-            <a onClick={() => setActiveModal('membership')}>혜택</a>
-            <a onClick={() => setActiveModal('search')}>검색</a>
+            <div className="nav-item">
+              <Image src="/Tworld/upper_button/adot_note.png" alt="음성 노트" width={40} height={40} />
+              <span>음성 노트</span>
+            </div>
+            <div className="nav-item">
+              <Image src="/Tworld/upper_button/t_roaming.png" alt="걱정없는여행" width={40} height={40} />
+              <span>걱정없는여행</span>
+            </div>
+            <div className="nav-item">
+              <Image src="/Tworld/upper_button/t_universe.png" alt="구독 마켓" width={40} height={40} />
+              <span>구독 마켓</span>
+            </div>
+            <div className="nav-item">
+              <Image src="/Tworld/upper_button/zem.png" alt="새학기이벤트" width={40} height={40} />
+              <span>새학기이벤트</span>
+            </div>
           </nav>
           <div className="user-menu">
             {isLoggedIn ? (
@@ -1096,12 +1156,16 @@ export default function TworldPage() {
                 <span style={{ fontWeight: '600', color: '#3617CE' }}>{userName}님</span>
                 {' | '}
                 <a onClick={handleSignOut} style={{ cursor: 'pointer' }}>로그아웃</a>
+                {' | '}
+                <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>초기화면</Link>
               </>
             ) : (
               <>
                 <Link href="/user/login" style={{ textDecoration: 'none', color: 'inherit' }}>로그인</Link>
                 {' | '}
                 <Link href="/auth/signup" style={{ textDecoration: 'none', color: 'inherit' }}>회원가입</Link>
+                {' | '}
+                <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>초기화면</Link>
               </>
             )}
           </div>
@@ -1151,6 +1215,39 @@ export default function TworldPage() {
           </div>
         </div>
 
+        {/* T 다이렉트샵 배너 */}
+        <div className="tdirect-banner-container">
+          <div className="tdirect-banner-wrapper">
+            <Image
+              src={`/Tworld/t_directshop/banner${currentTDirectBanner}.png`}
+              alt={`T Direct Shop Banner ${currentTDirectBanner}`}
+              fill
+              className="tdirect-banner-image"
+              style={{ objectFit: 'cover' }}
+              onClick={() => window.open('https://shop.tworld.co.kr/shop/main?referrer=', '_blank')}
+            />
+            <a
+              href="https://shop.tworld.co.kr/shop/main?referrer="
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tdirect-more-btn"
+            >
+              더보기
+              <span>→</span>
+            </a>
+            <div className="tdirect-dots">
+              <div
+                className={`tdirect-dot ${currentTDirectBanner === 1 ? 'active' : ''}`}
+                onClick={() => setCurrentTDirectBanner(1)}
+              />
+              <div
+                className={`tdirect-dot ${currentTDirectBanner === 2 ? 'active' : ''}`}
+                onClick={() => setCurrentTDirectBanner(2)}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="banner">
           <h3>데이터가 모자랄 땐?<br />T끼리 데이터 선물하기</h3>
           <p>가족, 친구에게 마음을 전해보세요.</p>
@@ -1194,7 +1291,7 @@ export default function TworldPage() {
       </Link>
 
       {/* Speech Bubble */}
-      {showAssistant && activeModal && (
+      {showAssistant && (
         <div className={`speech-bubble ${showAssistant ? 'show' : ''}`} onClick={handleAssistantClick}>
           <div className="speech-bubble-text">
             {getSpeechBubbleMessage()}
@@ -1204,7 +1301,7 @@ export default function TworldPage() {
 
       {/* 3D Character */}
       <div
-        className={`character-container ${showAssistant && activeModal ? 'show' : ''}`}
+        className={`character-container ${showAssistant ? 'show' : ''}`}
         suppressHydrationWarning
         onClick={handleAssistantClick}
         dangerouslySetInnerHTML={{
