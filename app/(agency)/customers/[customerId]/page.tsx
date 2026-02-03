@@ -1190,15 +1190,15 @@ export default function CustomerDetailPage() {
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-base font-bold text-slate-900 leading-tight whitespace-nowrap">12 / 24개월</p>
+                  <p className="text-base font-bold text-slate-900 leading-tight whitespace-nowrap">8 / 12개월</p>
                   <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ backgroundColor: '#3617CE', width: '50%' }}
+                      style={{ backgroundColor: '#3617CE', width: '67%' }}
                     />
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 font-medium">50% 완료</p>
+                <p className="text-xs text-slate-500 font-medium">67% 완료</p>
               </div>
             </div>
 
@@ -1209,7 +1209,7 @@ export default function CustomerDetailPage() {
                 <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">위약금</p>
               </div>
               <div className="space-y-1">
-                <p className="text-base font-bold text-slate-900 leading-tight">₩120,000</p>
+                <p className="text-base font-bold text-slate-900 leading-tight">₩200,000</p>
                 <p className="text-xs text-slate-500 font-medium">해지 시 발생</p>
               </div>
             </div>
@@ -1237,7 +1237,7 @@ export default function CustomerDetailPage() {
                 <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">단말기</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-bold text-slate-900 leading-tight">{customer.device_model_name || '정보 없음'}</p>
+                <p className="text-sm font-bold text-slate-900 leading-tight">iPhone 16 Pro</p>
                 {customer.device_purchase_date && (
                   <p className="text-xs text-slate-500 font-medium">
                     {format(new Date(customer.device_purchase_date), 'yyyy.MM.dd')}

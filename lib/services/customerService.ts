@@ -119,21 +119,18 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
 
       // 2. 요금제 정보
       const { data: planData } = await supabase
-        .from('purchase_history')
-        .select('product_name, price')
+        .from('customer_demographics')
+        .select('current_plan_type, current_plan_price')
         .eq('user_id', userId)
-        .eq('purchase_type', 'plan_change')
-        .order('purchase_date', { ascending: false })
-        .limit(1)
-        .single()
+        .maybeSingle()
 
       return {
         id: profile.id,
         customer_name: profile.full_name,
         customer_phone: profile.phone_number,
         customer_birth: profile.birthdate,
-        plan_name: planData?.product_name || null,
-        plan_price: planData?.price || null,
+        plan_name: planData?.current_plan_type || null,
+        plan_price: planData?.current_plan_price || null,
         bundle_type: familyMembersCount > 0 ? `가족결합 ${familyMembersCount}인` : null,
         device_model: null,
         device_remaining_months: null,
@@ -186,21 +183,18 @@ export async function getRecentCustomers(limit: number = 5): Promise<CustomerSea
 
         // 2. 요금제 정보
         const { data: planData } = await supabase
-          .from('purchase_history')
-          .select('product_name, price')
+          .from('customer_demographics')
+          .select('current_plan_type, current_plan_price')
           .eq('user_id', userId)
-          .eq('purchase_type', 'plan_change')
-          .order('purchase_date', { ascending: false })
-          .limit(1)
-          .single()
+          .maybeSingle()
 
         return {
           id: profile.id,
           customer_name: profile.full_name,
           customer_phone: profile.phone_number,
           customer_birth: profile.birthdate,
-          plan_name: planData?.product_name || null,
-          plan_price: planData?.price || null,
+          plan_name: planData?.current_plan_type || null,
+          plan_price: planData?.current_plan_price || null,
           bundle_type: familyMembersCount > 0 ? `가족결합 ${familyMembersCount}인` : null,
           device_model: null,
           device_remaining_months: null,
@@ -387,15 +381,12 @@ export async function getCustomerDetail(customerId: string) {
       deviceInfo = deviceData
     }
 
-    // 3. 요금제 정보 - purchase_history에서 가장 최근 plan_change
+    // 3. 요금제 정보 - customer_demographics에서 조회
     const { data: planData, error: planError } = await supabase
-      .from('purchase_history')
-      .select('product_name, price')
+      .from('customer_demographics')
+      .select('current_plan_type, current_plan_price')
       .eq('user_id', userId)
-      .eq('purchase_type', 'plan_change')
-      .order('purchase_date', { ascending: false })
-      .limit(1)
-      .single()
+      .maybeSingle()
 
     if (planError) {
       console.error('Error fetching plan info:', planError)
@@ -411,8 +402,8 @@ export async function getCustomerDetail(customerId: string) {
     family_members_count: familyMembersCount,
     device_model_name: deviceInfo?.model_name || null,
     device_purchase_date: deviceInfo?.purchase_date || null,
-    plan_name: planInfo?.product_name || null,
-    plan_price: planInfo?.price || null,
+    plan_name: planInfo?.current_plan_type || null,
+    plan_price: planInfo?.current_plan_price || null,
   }
 
   // Get predictions for all sessions of this customer
