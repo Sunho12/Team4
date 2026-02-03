@@ -29,8 +29,53 @@ export default function SearchPage() {
 
   useEffect(() => {
     checkAuth()
-    fetchRecentCustomers()
+    loadRecentSearches()
   }, [])
+
+  // 로컬 스토리지에서 최근 검색 고객 불러오기
+  const loadRecentSearches = () => {
+    try {
+      const saved = localStorage.getItem('recentCustomerSearches')
+      if (saved) {
+        const searches = JSON.parse(saved)
+        setRecentCustomers(searches.slice(0, 5)) // 최대 5개만
+      }
+    } catch (error) {
+      console.error('Failed to load recent searches:', error)
+    }
+  }
+
+  // 최근 검색에 추가
+  const addToRecentSearches = (customer: any) => {
+    try {
+      const saved = localStorage.getItem('recentCustomerSearches')
+      let searches = saved ? JSON.parse(saved) : []
+
+      // 중복 제거 (같은 ID의 고객)
+      searches = searches.filter((c: any) => c.id !== customer.id)
+
+      // 새 검색을 맨 앞에 추가
+      searches.unshift({
+        id: customer.id,
+        name: customer.customer_name,
+        phone: customer.customer_phone,
+        time: new Date().toLocaleString('ko-KR', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      })
+
+      // 최대 10개까지만 저장
+      searches = searches.slice(0, 10)
+
+      localStorage.setItem('recentCustomerSearches', JSON.stringify(searches))
+      setRecentCustomers(searches.slice(0, 5))
+    } catch (error) {
+      console.error('Failed to save recent search:', error)
+    }
+  }
 
   const checkAuth = async () => {
     try {
@@ -54,21 +99,6 @@ export default function SearchPage() {
       setAuthChecked(true)
     } catch (error) {
       router.push('/auth/login?mode=agency&returnUrl=/search')
-    }
-  }
-
-  const fetchRecentCustomers = async () => {
-    try {
-      const response = await fetch('/api/agency/recent-customers?limit=5')
-      if (!response.ok) {
-        console.error('Failed to fetch recent customers')
-        return
-      }
-
-      const data = await response.json()
-      setRecentCustomers(data.customers || [])
-    } catch (error) {
-      console.error('Error fetching recent customers:', error)
     }
   }
 
@@ -143,6 +173,11 @@ export default function SearchPage() {
 
       setResults(enrichedResults)
       setSearchError('')
+
+      // 검색 결과가 정확히 1개인 경우 최근 검색에 자동 추가
+      if (enrichedResults.length === 1) {
+        addToRecentSearches(enrichedResults[0])
+      }
 
     } catch (error: any) {
       console.error('❌ Search failed:', error)
@@ -773,7 +808,7 @@ export default function SearchPage() {
           )}
 
           {/* 최근 상담 고객 */}
-          {!showDetail && (
+          {!showDetail && recentCustomers.length > 0 && (
             <div>
               <p className="text-xs md:text-sm font-semibold text-gray-700 mb-2 md:mb-3">최근 상담 고객</p>
               <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 -mx-1 px-1">
@@ -825,7 +860,10 @@ export default function SearchPage() {
               {results.map((customer, index) => (
                 <div
                   key={customer.id || index}
-                  onClick={() => router.push(`/customers/${customer.id}`)}
+                  onClick={() => {
+                    addToRecentSearches(customer)
+                    router.push(`/customers/${customer.id}`)
+                  }}
                   className="bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-all"
                 >
                   <div className="flex items-start gap-3 mb-3">
@@ -856,6 +894,7 @@ export default function SearchPage() {
                   <Button
                     onClick={(e) => {
                       e.stopPropagation()
+                      addToRecentSearches(customer)
                       router.push(`/customers/${customer.id}`)
                     }}
                     className="w-full mt-3 border-2 border-[#EA002C] text-[#EA002C] bg-white hover:bg-[#EA002C] hover:text-white transition-all duration-300 text-sm"
@@ -884,7 +923,10 @@ export default function SearchPage() {
                     <tr
                       key={customer.id || index}
                       className="border-b border-gray-200 hover:bg-[#F8F9FA] transition-colors duration-200 cursor-pointer"
-                      onClick={() => router.push(`/customers/${customer.id}`)}
+                      onClick={() => {
+                        addToRecentSearches(customer)
+                        router.push(`/customers/${customer.id}`)
+                      }}
                     >
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
@@ -917,6 +959,7 @@ export default function SearchPage() {
                         <Button
                           onClick={(e) => {
                             e.stopPropagation()
+                            addToRecentSearches(customer)
                             router.push(`/customers/${customer.id}`)
                           }}
                           className="border-2 border-[#EA002C] text-[#EA002C] bg-white hover:bg-[#EA002C] hover:text-white transition-all duration-300 px-4 py-2 rounded-lg font-semibold text-sm"
