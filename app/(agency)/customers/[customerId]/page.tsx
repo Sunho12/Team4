@@ -943,62 +943,88 @@ export default function CustomerDetailPage() {
               )}
             </div>
 
-            {/* 카드뉴스 스타일 내용 */}
-            <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)] space-y-6">
+            {/* 2x2 그리드 레이아웃 */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
               {selectedConversation.summary ? (
-                <>
+                <div className="grid grid-cols-2 gap-4">
                   {/* 카드 1: 상담 카테고리 및 감정 */}
-                  <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-3xl p-8 border-2 border-purple-200 shadow-lg">
-                    <div className="text-center mb-6">
-                      <div className="inline-block p-4 bg-white rounded-full shadow-md mb-4">
-                        <MessageSquare className="w-12 h-12 text-[#3617CE]" />
+                  <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-200 shadow-sm">
+                    <div className="text-center">
+                      <div className="inline-block p-3 bg-white rounded-full shadow-sm mb-3">
+                        <MessageSquare className="w-8 h-8 text-[#3617CE]" />
                       </div>
-                      <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">
                         {selectedConversation.summary.category}
                       </h3>
-                      <div className="flex items-center justify-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
+                      <div className="flex items-center justify-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${
                           selectedConversation.summary.sentiment === 'positive' ? 'bg-green-500' :
                           selectedConversation.summary.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-500'
                         }`}></div>
-                        <span className="text-lg font-semibold text-gray-700">
+                        <span className="text-sm font-semibold text-gray-700">
                           {getSentimentText(selectedConversation.summary.sentiment)} 상담
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* 카드 2: 상담 요약 */}
-                  <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-3xl p-8 border-2 border-blue-200 shadow-lg">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-3 bg-white rounded-xl shadow-md">
-                        <MessageSquare className="w-8 h-8 text-[#3617CE]" />
+                  {/* 카드 2: 상담 통계 */}
+                  <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl p-5 border border-green-200 shadow-sm">
+                    <div className="grid grid-cols-2 gap-3 h-full">
+                      <div className="text-center bg-white/80 backdrop-blur rounded-xl p-3 shadow-sm">
+                        <p className="text-xs font-semibold text-gray-600 mb-1">상담 시작</p>
+                        <p className="text-base font-bold text-gray-900">
+                          {format(new Date(selectedConversation.started_at), 'HH:mm')}
+                        </p>
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900">상담 요약</h3>
+                      <div className="text-center bg-white/80 backdrop-blur rounded-xl p-3 shadow-sm">
+                        <p className="text-xs font-semibold text-gray-600 mb-1">상담 종료</p>
+                        <p className="text-base font-bold text-gray-900">
+                          {selectedConversation.ended_at
+                            ? format(new Date(selectedConversation.ended_at), 'HH:mm')
+                            : '진행중'}
+                        </p>
+                      </div>
+                      <div className="col-span-2 text-center bg-white/80 backdrop-blur rounded-xl p-3 shadow-sm">
+                        <p className="text-xs font-semibold text-gray-600 mb-1">총 메시지</p>
+                        <p className="text-2xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+                          {selectedConversation.messages.length}개
+                        </p>
+                      </div>
                     </div>
-                    <div className="bg-white/80 backdrop-blur rounded-2xl p-6 shadow-inner">
-                      <p className="text-base text-gray-800 leading-relaxed" style={{ lineHeight: '2' }}>
+                  </div>
+
+                  {/* 카드 3: 상담 요약 */}
+                  <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-2xl p-5 border border-blue-200 shadow-sm col-span-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="p-2 bg-white rounded-lg shadow-sm">
+                        <MessageSquare className="w-5 h-5 text-[#3617CE]" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900">상담 요약</h3>
+                    </div>
+                    <div className="bg-white/80 backdrop-blur rounded-xl p-4 shadow-sm">
+                      <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
                         {selectedConversation.summary.summary}
                       </p>
                     </div>
                   </div>
 
-                  {/* 카드 3: 키워드 */}
+                  {/* 카드 4: 키워드 */}
                   {selectedConversation.summary.keywords && selectedConversation.summary.keywords.length > 0 && (
-                    <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-3xl p-8 border-2 border-orange-200 shadow-lg">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="p-3 bg-white rounded-xl shadow-md">
-                          <Tag className="w-8 h-8 text-[#FF7A00]" />
+                    <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-2xl p-5 border border-orange-200 shadow-sm col-span-2">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          <Tag className="w-5 h-5 text-[#FF7A00]" />
                         </div>
-                        <h3 className="text-2xl font-bold text-gray-900">핵심 키워드</h3>
+                        <h3 className="text-lg font-bold text-gray-900">핵심 키워드</h3>
                       </div>
-                      <div className="flex flex-wrap gap-3 justify-center">
+                      <div className="flex flex-wrap gap-2">
                         {selectedConversation.summary.keywords.map((keyword, idx) => (
                           <div
                             key={idx}
-                            className="bg-white rounded-2xl px-6 py-4 shadow-md border-2 border-orange-200 hover:scale-105 transition-transform"
+                            className="bg-white rounded-lg px-4 py-2 shadow-sm border border-orange-200"
                           >
-                            <span className="text-lg font-bold bg-gradient-to-r from-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
+                            <span className="text-sm font-bold bg-gradient-to-r from-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
                               #{keyword}
                             </span>
                           </div>
@@ -1006,36 +1032,10 @@ export default function CustomerDetailPage() {
                       </div>
                     </div>
                   )}
-
-                  {/* 카드 4: 상담 통계 */}
-                  <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-3xl p-8 border-2 border-green-200 shadow-lg">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
-                        <p className="text-sm font-semibold text-gray-600 mb-2">상담 시작</p>
-                        <p className="text-lg font-bold text-gray-900">
-                          {format(new Date(selectedConversation.started_at), 'HH:mm')}
-                        </p>
-                      </div>
-                      <div className="text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
-                        <p className="text-sm font-semibold text-gray-600 mb-2">상담 종료</p>
-                        <p className="text-lg font-bold text-gray-900">
-                          {selectedConversation.ended_at
-                            ? format(new Date(selectedConversation.ended_at), 'HH:mm')
-                            : '진행중'}
-                        </p>
-                      </div>
-                      <div className="col-span-2 text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
-                        <p className="text-sm font-semibold text-gray-600 mb-2">총 메시지</p>
-                        <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-                          {selectedConversation.messages.length}개
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
+                </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500 text-lg">요약 정보가 없습니다.</p>
+                  <p className="text-gray-500 text-base">요약 정보가 없습니다.</p>
                 </div>
               )}
             </div>
@@ -1209,13 +1209,13 @@ export default function CustomerDetailPage() {
         {/* 벤토 그리드 레이아웃 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* [구획 가] 이전 상담 내역 */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-[#3617CE]" />
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-6" style={{ borderRadius: '12px' }}>
+            <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-[#3617CE]" />
               이전 상담 내역
             </h2>
 
-            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
               {(() => {
                 // conversation_summaries가 있는 상담만 필터링
                 const conversationsWithSummary = conversations.filter(conv => conv.summary)
@@ -1227,35 +1227,37 @@ export default function CustomerDetailPage() {
                       <div
                         key={conv.id}
                         onClick={() => setSelectedConversation(conv)}
-                        className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 ${
+                        className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 ${
                           isRecent ? 'border-2 border-[#EA002C]' : 'border border-gray-200'
-                        } transition-all hover:shadow-md cursor-pointer hover:scale-[1.02]`}
+                        } transition-all hover:shadow-md cursor-pointer hover:scale-[1.01]`}
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm text-gray-600 font-medium">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs text-gray-600 font-medium">
                             {format(new Date(conv.started_at), 'yyyy.MM.dd HH:mm')}
                           </span>
-                          {isRecent && (
-                            <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
-                          )}
-                          <Badge className={`${getSentimentColor(conv.summary!.sentiment)} text-white text-xs`}>
-                            {getSentimentText(conv.summary!.sentiment)}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            {isRecent && (
+                              <Badge className="bg-[#EA002C] text-white text-xs py-0 px-2">최근</Badge>
+                            )}
+                            <Badge className={`${getSentimentColor(conv.summary!.sentiment)} text-white text-xs py-0 px-2`}>
+                              {getSentimentText(conv.summary!.sentiment)}
+                            </Badge>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 mb-3">
-                          <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-[#3617CE] border-[#3617CE] text-xs py-0 px-2">
                             {conv.summary!.category}
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
+                        <p className="text-sm text-gray-800 leading-relaxed line-clamp-2">
                           {conv.summary!.summary}
                         </p>
                       </div>
                     )
                   })
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-gray-500 text-sm">
                     상담 요약이 있는 내역이 없습니다.
                   </div>
                 )

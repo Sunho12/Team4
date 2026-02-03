@@ -201,7 +201,13 @@ export default function TworldPage() {
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
-        body { background-color: var(--bg-gray); color: var(--text-black); letter-spacing: -0.5px; }
+        body { background-color: var(--bg-gray); color: var(--text-black); letter-spacing: -0.5px; overflow-y: scroll; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
 
         /* Header */
         .tworld-header { background: #fff; border-bottom: 1px solid var(--border-light); height: 72px; display: flex; align-items: center; position: sticky; top: 0; z-index: 100; }
@@ -221,7 +227,7 @@ export default function TworldPage() {
         /* Quick Menu Grid */
         .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 48px; }
         .quick-card { background: #fff; padding: 40px 20px; border-radius: 20px; text-align: center; transition: all 0.3s ease; border: 2px solid var(--border-light); cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.03); display: flex; align-items: center; justify-content: center; min-height: 120px; }
-        .quick-card:hover { border-color: var(--t-blue); transform: translateY(-4px); box-shadow: 0 8px 20px rgba(54,23,206,0.1); background: linear-gradient(135deg, #ffffff, #f8f9ff); }
+        .quick-card:hover { border-color: var(--t-blue); box-shadow: 0 8px 20px rgba(54,23,206,0.15); background: linear-gradient(135deg, #ffffff, #f8f9ff); }
         .quick-card span { display: block; font-weight: 700; font-size: 18px; color: var(--text-black); }
 
         /* Banner Section */
@@ -232,8 +238,8 @@ export default function TworldPage() {
 
         /* Info Grid */
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-        .info-card { background: #fff; border-radius: 20px; padding: 24px; display: flex; align-items: center; gap: 20px; cursor: pointer; border: 1px solid var(--border-light); }
-        .info-card:hover { border-color: #ddd; }
+        .info-card { background: #fff; border-radius: 20px; padding: 24px; display: flex; align-items: center; gap: 20px; cursor: pointer; border: 1px solid var(--border-light); transition: all 0.3s ease; }
+        .info-card:hover { border-color: var(--t-blue); box-shadow: 0 4px 12px rgba(54, 23, 206, 0.08); }
         .info-card .img-placeholder { width: 80px; height: 80px; background: #f0f0f0; border-radius: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 32px; }
         .info-text .title { font-weight: 700; font-size: 18px; margin-bottom: 6px; }
         .info-text .desc { font-size: 14px; color: var(--text-gray); line-height: 1.4; }
@@ -353,14 +359,19 @@ export default function TworldPage() {
         /* Modal Content */
         .modal-content {
           background: white;
-          border-radius: 24px;
-          max-width: 600px;
+          border-radius: 20px;
+          max-width: 520px;
           width: 100%;
-          max-height: 80vh;
+          max-height: 75vh;
           overflow-y: auto;
           position: relative;
           animation: modalSlideUp 0.3s ease;
         }
+
+        .modal-content::-webkit-scrollbar { width: 6px; }
+        .modal-content::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .modal-content::-webkit-scrollbar-thumb:hover { background: #999; }
 
         @keyframes modalSlideUp {
           from {
@@ -374,15 +385,16 @@ export default function TworldPage() {
         }
 
         .modal-header {
-          padding: 24px;
+          padding: 20px 24px;
           border-bottom: 1px solid var(--border-light);
           display: flex;
           justify-content: space-between;
           align-items: center;
+          background: linear-gradient(to bottom, #fafafa, #ffffff);
         }
 
         .modal-header h2 {
-          font-size: 24px;
+          font-size: 20px;
           font-weight: 700;
         }
 
@@ -405,7 +417,8 @@ export default function TworldPage() {
         }
 
         .modal-body {
-          padding: 24px;
+          padding: 20px 24px 24px;
+          line-height: 1.6;
         }
 
         /* Usage Bar */
@@ -445,20 +458,42 @@ export default function TworldPage() {
         .usage-fill.yellow { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
         .usage-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
 
+        /* Plan Grid */
+        .plan-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .plan-section {
+          margin-bottom: 20px;
+        }
+
+        .plan-section-title {
+          font-size: 15px;
+          font-weight: 700;
+          margin-bottom: 12px;
+          color: var(--text-gray);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
         /* Plan Card */
         .plan-card {
           background: #f8f9fa;
-          border-radius: 16px;
-          padding: 20px;
-          margin-bottom: 16px;
+          border-radius: 12px;
+          padding: 14px;
           border: 2px solid transparent;
           cursor: pointer;
           transition: all 0.3s ease;
+          height: 100%;
         }
 
         .plan-card:hover {
           border-color: var(--t-blue);
-          transform: translateY(-2px);
+          box-shadow: 0 2px 8px rgba(54, 23, 206, 0.1);
         }
 
         .plan-card.recommended {
@@ -478,68 +513,69 @@ export default function TworldPage() {
         }
 
         .plan-name {
-          font-size: 20px;
+          font-size: 17px;
           font-weight: 700;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .plan-price {
-          font-size: 28px;
+          font-size: 24px;
           font-weight: 800;
           color: var(--t-blue);
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .plan-features {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
 
         .plan-feature {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 14px;
+          gap: 6px;
+          font-size: 13px;
           color: var(--text-gray);
+          line-height: 1.5;
         }
 
         /* Payment Info */
         .payment-amount {
           background: linear-gradient(135deg, var(--t-blue), #5b3fd1);
           color: white;
-          padding: 32px;
-          border-radius: 16px;
+          padding: 24px;
+          border-radius: 12px;
           text-align: center;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
         }
 
         .payment-amount .label {
-          font-size: 14px;
+          font-size: 13px;
           opacity: 0.9;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .payment-amount .amount {
-          font-size: 48px;
+          font-size: 36px;
           font-weight: 800;
         }
 
         .payment-amount .dday {
-          font-size: 16px;
-          margin-top: 12px;
+          font-size: 14px;
+          margin-top: 8px;
           opacity: 0.9;
         }
 
         .payment-methods {
           display: grid;
-          gap: 12px;
+          gap: 10px;
         }
 
         .payment-method {
-          padding: 16px;
+          padding: 14px;
           border: 2px solid var(--border-light);
-          border-radius: 12px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           gap: 12px;
@@ -550,15 +586,16 @@ export default function TworldPage() {
         .payment-method:hover {
           border-color: var(--t-blue);
           background: #f8f9ff;
+          box-shadow: 0 2px 8px rgba(54, 23, 206, 0.08);
         }
 
         /* Coupon Card */
         .coupon-card {
           background: linear-gradient(135deg, #6366f1, #8b5cf6);
           color: white;
-          padding: 24px;
-          border-radius: 16px;
-          margin-bottom: 16px;
+          padding: 20px;
+          border-radius: 12px;
+          margin-bottom: 12px;
           position: relative;
           overflow: hidden;
         }
@@ -574,19 +611,20 @@ export default function TworldPage() {
         }
 
         .coupon-discount {
-          font-size: 36px;
+          font-size: 30px;
           font-weight: 800;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .coupon-desc {
-          font-size: 14px;
+          font-size: 13px;
           opacity: 0.9;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
+          line-height: 1.4;
         }
 
         .coupon-expiry {
-          font-size: 12px;
+          font-size: 11px;
           opacity: 0.8;
         }
 
@@ -595,9 +633,9 @@ export default function TworldPage() {
           background: var(--t-blue);
           color: white;
           border: none;
-          padding: 14px 28px;
-          border-radius: 12px;
-          font-size: 16px;
+          padding: 12px 24px;
+          border-radius: 10px;
+          font-size: 15px;
           font-weight: 600;
           cursor: pointer;
           width: 100%;
@@ -607,51 +645,51 @@ export default function TworldPage() {
 
         .btn-primary:hover {
           background: #2b0fa8;
-          transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(54, 23, 206, 0.3);
         }
 
         /* Input */
         .input-group {
-          margin-bottom: 16px;
+          margin-bottom: 14px;
         }
 
         .input-label {
           display: block;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .input-field {
           width: 100%;
-          padding: 12px 16px;
+          padding: 10px 14px;
           border: 2px solid var(--border-light);
-          border-radius: 12px;
-          font-size: 16px;
+          border-radius: 10px;
+          font-size: 14px;
           transition: all 0.3s ease;
         }
 
         .input-field:focus {
           outline: none;
           border-color: var(--t-blue);
+          box-shadow: 0 0 0 3px rgba(54, 23, 206, 0.1);
         }
 
         /* Guide Steps */
         .guide-steps {
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 16px;
         }
 
         .guide-step {
           display: flex;
-          gap: 16px;
+          gap: 12px;
         }
 
         .step-number {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           background: var(--t-blue);
           color: white;
           border-radius: 50%;
@@ -660,6 +698,7 @@ export default function TworldPage() {
           justify-content: center;
           font-weight: 700;
           flex-shrink: 0;
+          font-size: 14px;
         }
 
         .step-content {
@@ -667,13 +706,13 @@ export default function TworldPage() {
         }
 
         .step-title {
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 700;
           margin-bottom: 4px;
         }
 
         .step-desc {
-          font-size: 14px;
+          font-size: 13px;
           color: var(--text-gray);
           line-height: 1.6;
         }
@@ -681,19 +720,19 @@ export default function TworldPage() {
         /* Membership Tabs */
         .membership-tabs {
           display: flex;
-          gap: 8px;
-          margin-bottom: 24px;
+          gap: 6px;
+          margin-bottom: 20px;
           border-bottom: 2px solid var(--border-light);
           padding-bottom: 0;
         }
 
         .membership-tab {
           flex: 1;
-          padding: 14px 20px;
+          padding: 11px 16px;
           background: #f5f5f5;
           border: none;
-          border-radius: 12px 12px 0 0;
-          font-size: 15px;
+          border-radius: 10px 10px 0 0;
+          font-size: 14px;
           font-weight: 600;
           color: var(--text-gray);
           cursor: pointer;
@@ -724,7 +763,7 @@ export default function TworldPage() {
         .brand-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
+          gap: 12px;
           animation: fadeIn 0.3s ease;
         }
 
@@ -742,8 +781,8 @@ export default function TworldPage() {
         .brand-card {
           background: white;
           border: 2px solid var(--border-light);
-          border-radius: 16px;
-          padding: 20px;
+          border-radius: 12px;
+          padding: 16px;
           text-align: center;
           cursor: pointer;
           transition: all 0.3s ease;
@@ -751,29 +790,29 @@ export default function TworldPage() {
 
         .brand-card:hover {
           border-color: var(--t-blue);
-          transform: translateY(-4px);
-          box-shadow: 0 8px 20px rgba(54, 23, 206, 0.15);
+          box-shadow: 0 4px 12px rgba(54, 23, 206, 0.12);
         }
 
         .brand-logo {
           width: 100%;
-          height: 120px;
+          height: 100px;
           object-fit: contain;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
           border-radius: 8px;
         }
 
         .brand-name {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 700;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           color: var(--text-black);
         }
 
         .brand-benefit {
-          font-size: 14px;
+          font-size: 13px;
           color: var(--t-blue);
           font-weight: 600;
+          line-height: 1.4;
         }
 
         /* Main Banner */
@@ -1241,112 +1280,109 @@ export default function TworldPage() {
                   <button className="modal-close" onClick={closeModal}>×</button>
                 </div>
                 <div className="modal-body">
-                  <div style={{ marginBottom: '24px', padding: '16px', background: '#f8f9fa', borderRadius: '12px' }}>
-                    <div style={{ fontSize: '14px', color: 'var(--text-gray)', marginBottom: '4px' }}>현재 요금제</div>
-                    <div style={{ fontSize: '20px', fontWeight: '700' }}>5GX 프라임</div>
-                    <div style={{ fontSize: '16px', color: 'var(--t-blue)', fontWeight: '600', marginTop: '4px' }}>월 89,000원</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-gray)', marginTop: '8px' }}>데이터 무제한 • VIP 멤버십</div>
+                  <div style={{ marginBottom: '20px', padding: '14px', background: '#f8f9fa', borderRadius: '10px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-gray)', marginBottom: '4px' }}>현재 요금제</div>
+                    <div style={{ fontSize: '17px', fontWeight: '700' }}>5GX 프라임</div>
+                    <div style={{ fontSize: '15px', color: 'var(--t-blue)', fontWeight: '600', marginTop: '4px' }}>월 89,000원</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-gray)', marginTop: '6px' }}>데이터 무제한 • VIP 멤버십</div>
                   </div>
 
                   {/* 프리미엄 등급 */}
-                  <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '24px', marginBottom: '12px', color: 'var(--text-gray)' }}>
-                    👑 프리미엄 등급 (무제한 + VIP)
-                  </div>
+                  <div className="plan-section">
+                    <div className="plan-section-title">👑 프리미엄 등급 (무제한 + VIP)</div>
+                    <div className="plan-grid">
+                      <div className="plan-card">
+                        <span className="plan-badge" style={{ background: '#FFD700' }}>최상위</span>
+                        <div className="plan-name">5GX 플래티넘</div>
+                        <div className="plan-price">125,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 데이터 무제한</div>
+                          <div className="plan-feature">✓ 우주패스 all/life 무료</div>
+                          <div className="plan-feature">✓ 스마트기기 2회선 무료</div>
+                          <div className="plan-feature">✓ VIP 멤버십</div>
+                        </div>
+                      </div>
 
-                  <div className="plan-card">
-                    <span className="plan-badge" style={{ background: '#FFD700' }}>최상위</span>
-                    <div className="plan-name">5GX 플래티넘</div>
-                    <div className="plan-price">125,000원<span style={{ fontSize: '16px', fontWeight: '400' }}>/월</span></div>
-                    <div className="plan-features">
-                      <div className="plan-feature">✓ 데이터 무제한</div>
-                      <div className="plan-feature">✓ 우주패스 all/life 무료</div>
-                      <div className="plan-feature">✓ 스마트기기 2회선 무료</div>
-                      <div className="plan-feature">✓ VIP 멤버십</div>
+                      <div className="plan-card">
+                        <div className="plan-name">5GX 프리미엄</div>
+                        <div className="plan-price">109,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 데이터 무제한</div>
+                          <div className="plan-feature">✓ 우주패스 혜택</div>
+                          <div className="plan-feature">✓ 스마트기기 1회선 무료</div>
+                          <div className="plan-feature">✓ VIP 멤버십</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="plan-card">
-                    <div className="plan-name">5GX 프리미엄</div>
-                    <div className="plan-price">109,000원<span style={{ fontSize: '16px', fontWeight: '400' }}>/월</span></div>
-                    <div className="plan-features">
-                      <div className="plan-feature">✓ 데이터 무제한</div>
-                      <div className="plan-feature">✓ 우주패스 혜택</div>
-                      <div className="plan-feature">✓ 스마트기기 1회선 무료</div>
-                      <div className="plan-feature">✓ VIP 멤버십</div>
-                    </div>
-                  </div>
+                  {/* 표준/대용량 등급 */}
+                  <div className="plan-section">
+                    <div className="plan-section-title">⭐ 표준 & 대용량 등급</div>
+                    <div className="plan-grid">
+                      <div className="plan-card recommended">
+                        <span className="plan-badge">추천</span>
+                        <div className="plan-name">5GX 프라임플러스</div>
+                        <div className="plan-price">99,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 데이터 무제한</div>
+                          <div className="plan-feature">✓ 우주패스/wavve/FLO 중 택1</div>
+                          <div className="plan-feature">✓ 스마트기기 2회선 50% 할인</div>
+                          <div className="plan-feature">✓ VIP 멤버십</div>
+                        </div>
+                      </div>
 
-                  {/* 표준 무제한 등급 */}
-                  <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '24px', marginBottom: '12px', color: 'var(--text-gray)' }}>
-                    ⭐ 표준 무제한 등급
-                  </div>
-
-                  <div className="plan-card recommended">
-                    <span className="plan-badge">추천</span>
-                    <div className="plan-name">5GX 프라임플러스</div>
-                    <div className="plan-price">99,000원<span style={{ fontSize: '16px', fontWeight: '400' }}>/월</span></div>
-                    <div className="plan-features">
-                      <div className="plan-feature">✓ 데이터 무제한</div>
-                      <div className="plan-feature">✓ 우주패스/wavve/FLO 중 택1 무료</div>
-                      <div className="plan-feature">✓ 스마트기기 2회선 50% 할인</div>
-                      <div className="plan-feature">✓ VIP 멤버십</div>
-                    </div>
-                  </div>
-
-                  {/* 대용량 등급 */}
-                  <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '24px', marginBottom: '12px', color: 'var(--text-gray)' }}>
-                    📦 대용량 등급
-                  </div>
-
-                  <div className="plan-card">
-                    <div className="plan-name">5G 함께플러스</div>
-                    <div className="plan-price">79,000원<span style={{ fontSize: '16px', fontWeight: '400' }}>/월</span></div>
-                    <div className="plan-features">
-                      <div className="plan-feature">✓ 데이터 250GB</div>
-                      <div className="plan-feature">✓ 공유 데이터 40GB</div>
-                      <div className="plan-feature">✓ 속도제어 5Mbps</div>
-                      <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 10,000원 절약</div>
+                      <div className="plan-card">
+                        <div className="plan-name">5G 함께플러스</div>
+                        <div className="plan-price">79,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 데이터 250GB</div>
+                          <div className="plan-feature">✓ 공유 데이터 40GB</div>
+                          <div className="plan-feature">✓ 속도제어 5Mbps</div>
+                          <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 10,000원 절약</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   {/* 중간 등급 */}
-                  <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '24px', marginBottom: '12px', color: 'var(--text-gray)' }}>
-                    📱 중간 등급
-                  </div>
+                  <div className="plan-section">
+                    <div className="plan-section-title">📱 중간 등급</div>
+                    <div className="plan-grid">
+                      <div className="plan-card">
+                        <div className="plan-name">5G 베이직플러스</div>
+                        <div className="plan-price">59,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 데이터 15GB</div>
+                          <div className="plan-feature">✓ 속도제어 1Mbps</div>
+                          <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 30,000원 절약</div>
+                        </div>
+                      </div>
 
-                  <div className="plan-card">
-                    <div className="plan-name">5G 베이직플러스</div>
-                    <div className="plan-price">59,000원<span style={{ fontSize: '16px', fontWeight: '400' }}>/월</span></div>
-                    <div className="plan-features">
-                      <div className="plan-feature">✓ 데이터 15GB</div>
-                      <div className="plan-feature">✓ 기본 제공량 소진 시 속도제어 1Mbps</div>
-                      <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 30,000원 절약</div>
-                    </div>
-                  </div>
-
-                  <div className="plan-card">
-                    <div className="plan-name">5G 베이직</div>
-                    <div className="plan-price">49,000원<span style={{ fontSize: '16px', fontWeight: '400' }}>/월</span></div>
-                    <div className="plan-features">
-                      <div className="plan-feature">✓ 데이터 11GB</div>
-                      <div className="plan-feature">✓ 속도제어 1Mbps</div>
-                      <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 40,000원 절약</div>
+                      <div className="plan-card">
+                        <div className="plan-name">5G 베이직</div>
+                        <div className="plan-price">49,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 데이터 11GB</div>
+                          <div className="plan-feature">✓ 속도제어 1Mbps</div>
+                          <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 40,000원 절약</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   {/* 실속형 */}
-                  <div style={{ fontSize: '16px', fontWeight: '700', marginTop: '24px', marginBottom: '12px', color: 'var(--text-gray)' }}>
-                    💡 실속형
-                  </div>
-
-                  <div className="plan-card">
-                    <div className="plan-name">5G 컴팩트</div>
-                    <div className="plan-price">39,000원<span style={{ fontSize: '16px', fontWeight: '400' }}>/월</span></div>
-                    <div className="plan-features">
-                      <div className="plan-feature">✓ 데이터 6GB</div>
-                      <div className="plan-feature">✓ 속도제어 400kbps</div>
-                      <div className="plan-feature">✓ 2024년 출시 실속형</div>
-                      <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 50,000원 절약</div>
+                  <div className="plan-section">
+                    <div className="plan-section-title">💡 실속형</div>
+                    <div className="plan-card">
+                      <div className="plan-name">5G 컴팩트</div>
+                      <div className="plan-price">39,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                      <div className="plan-features">
+                        <div className="plan-feature">✓ 데이터 6GB</div>
+                        <div className="plan-feature">✓ 속도제어 400kbps</div>
+                        <div className="plan-feature">✓ 2024년 출시 실속형</div>
+                        <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 50,000원 절약</div>
+                      </div>
                     </div>
                   </div>
 

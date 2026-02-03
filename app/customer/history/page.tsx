@@ -89,126 +89,151 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <div className="border-b bg-white shadow-sm">
-        <div className="container mx-auto p-4 max-w-4xl flex items-center justify-between">
+      <div className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-5 max-w-5xl flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/tworld" className="cursor-pointer">
+            <Link href="/tworld" className="cursor-pointer hover:opacity-80 transition-opacity">
               <Image
                 src="/Tworld/T.png"
                 alt="T world"
-                width={32}
-                height={32}
+                width={40}
+                height={40}
                 priority
               />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold">내 상담 이력</h1>
-              <p className="text-sm text-muted-foreground">지금까지의 모든 상담 내역입니다</p>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                내 상담 이력
+              </h1>
+              <p className="text-sm text-gray-600 mt-0.5">지금까지의 모든 상담 내역입니다</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/">
-              <Button variant="outline" size="sm">초기화면</Button>
+              <Button variant="outline" size="sm" className="hover:bg-gray-50">초기화면</Button>
             </Link>
             <Link href="/chat">
-              <Button variant="outline" size="sm">챗봇으로</Button>
+              <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                챗봇으로
+              </Button>
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto p-4 max-w-4xl space-y-6 mt-6">
+      <div className="container mx-auto px-6 py-10 max-w-5xl space-y-8">
         {/* Purchase Predictions */}
         {predictions.length > 0 && (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <span>구매 의향 분석</span>
-                <Badge variant="secondary">{predictions.length}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {predictions.map((pred) => (
-                  <div key={pred.id} className="border-l-4 border-primary pl-4 py-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge>{pred.prediction_type}</Badge>
-                      <Badge variant={
-                        pred.confidence === 'high' ? 'default' :
-                        pred.confidence === 'medium' ? 'secondary' : 'outline'
-                      }>
-                        {pred.confidence === 'high' ? '높음' :
-                         pred.confidence === 'medium' ? '중간' : '낮음'}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        확률: {(pred.probability_score * 100).toFixed(0)}%
-                      </span>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-6 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full"></div>
+              <h2 className="text-xl font-bold text-gray-800">구매 의향 분석</h2>
+              <Badge variant="secondary" className="ml-1">{predictions.length}</Badge>
+            </div>
+            <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="space-y-5">
+                  {predictions.map((pred) => (
+                    <div key={pred.id} className="border-l-4 border-blue-500 bg-blue-50/50 rounded-r-lg pl-5 pr-4 py-4 hover:bg-blue-50 transition-colors">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge className="bg-blue-600">{pred.prediction_type}</Badge>
+                        <Badge variant={
+                          pred.confidence === 'high' ? 'default' :
+                          pred.confidence === 'medium' ? 'secondary' : 'outline'
+                        }>
+                          {pred.confidence === 'high' ? '높음' :
+                           pred.confidence === 'medium' ? '중간' : '낮음'}
+                        </Badge>
+                        <span className="text-sm font-medium text-blue-700">
+                          확률: {(pred.probability_score * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      {pred.reasoning && (
+                        <p className="text-sm leading-relaxed text-gray-700 mb-2">{pred.reasoning}</p>
+                      )}
+                      <p className="text-xs text-gray-500">
+                        {formatDistanceToNow(new Date(pred.created_at), {
+                          addSuffix: true,
+                          locale: ko
+                        })}
+                      </p>
                     </div>
-                    {pred.reasoning && (
-                      <p className="text-sm">{pred.reasoning}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {formatDistanceToNow(new Date(pred.created_at), {
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Conversation History */}
+        <div className="space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 bg-gradient-to-b from-indigo-600 to-purple-600 rounded-full"></div>
+            <h2 className="text-xl font-bold text-gray-800">상담 내역</h2>
+            <span className="text-sm text-gray-500">총 {conversations.length}건</span>
+          </div>
+
+          {conversations.length > 0 ? (
+            <div className="space-y-4">
+              {conversations.map((conv) => (
+                <Card key={conv.id} className="shadow-md hover:shadow-xl transition-all duration-300 border-0 bg-white/90 backdrop-blur-sm overflow-hidden group">
+                  <CardHeader className="pb-3 pt-5 px-6 bg-gradient-to-r from-gray-50/50 to-white group-hover:from-blue-50/50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg font-bold text-gray-800">
+                        {conv.category || '상담'}
+                      </CardTitle>
+                      {conv.sentiment && (
+                        <Badge
+                          variant={
+                            conv.sentiment === 'positive' ? 'default' :
+                            conv.sentiment === 'negative' ? 'destructive' : 'secondary'
+                          }
+                          className="px-3 py-1"
+                        >
+                          {conv.sentiment === 'positive' ? '😊 긍정' :
+                           conv.sentiment === 'negative' ? '😔 부정' : '😐 중립'}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {formatDistanceToNow(new Date(conv.created_at), {
                         addSuffix: true,
                         locale: ko
                       })}
                     </p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Conversation History */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">상담 내역</h2>
-
-          {conversations.length > 0 ? (
-            conversations.map((conv) => (
-              <Card key={conv.id} className="shadow-md hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
-                      {conv.category || '상담'}
-                    </CardTitle>
-                    {conv.sentiment && (
-                      <Badge variant={
-                        conv.sentiment === 'positive' ? 'default' :
-                        conv.sentiment === 'negative' ? 'destructive' : 'secondary'
-                      }>
-                        {conv.sentiment === 'positive' ? '긍정' :
-                         conv.sentiment === 'negative' ? '부정' : '중립'}
-                      </Badge>
+                  </CardHeader>
+                  <CardContent className="px-6 pb-5 pt-4">
+                    <p className="text-sm leading-relaxed text-gray-700 mb-4">
+                      {conv.summary}
+                    </p>
+                    {conv.keywords && conv.keywords.length > 0 && (
+                      <div className="flex gap-2 flex-wrap pt-2 border-t border-gray-100">
+                        {conv.keywords.map((kw, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="bg-white hover:bg-gray-50 transition-colors"
+                          >
+                            #{kw}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDistanceToNow(new Date(conv.created_at), {
-                      addSuffix: true,
-                      locale: ko
-                    })}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-4 text-sm leading-relaxed text-gray-700">{conv.summary}</p>
-                  {conv.keywords && conv.keywords.length > 0 && (
-                    <div className="flex gap-2 flex-wrap">
-                      {conv.keywords.map((kw, idx) => (
-                        <Badge key={idx} variant="outline">{kw}</Badge>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : (
-            <Card className="shadow-md">
-              <CardContent className="pt-6 text-center">
-                <p className="text-muted-foreground mb-4">아직 상담 이력이 없습니다.</p>
+            <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
+              <CardContent className="py-16 text-center">
+                <div className="text-6xl mb-4">💬</div>
+                <p className="text-gray-600 mb-6 text-lg">아직 상담 이력이 없습니다.</p>
                 <Link href="/chat">
-                  <Button>첫 상담 시작하기</Button>
+                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-2 text-base">
+                    첫 상담 시작하기
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
