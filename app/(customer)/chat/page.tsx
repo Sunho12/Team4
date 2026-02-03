@@ -118,7 +118,7 @@ export default function ChatPage() {
     <main className="flex min-h-screen flex-col">
       {/* Header */}
       <div className="border-b p-4 flex items-center justify-between bg-white shadow-sm">
-        <div className="flex items-center gap-2">
+        <Link href="/tworld" className="flex items-center gap-2 cursor-pointer">
           <Image
             src="/Tworld/T.png"
             alt="T world"
@@ -127,8 +127,11 @@ export default function ChatPage() {
             priority
           />
           <h1 className="text-xl font-bold text-primary">챗봇</h1>
-        </div>
+        </Link>
         <div className="flex items-center gap-3">
+          <Link href="/">
+            <Button variant="outline" size="sm">초기화면</Button>
+          </Link>
           <Link href="/customer/history">
             <Button variant="outline" size="sm">내 상담 이력</Button>
           </Link>

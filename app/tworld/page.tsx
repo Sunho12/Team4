@@ -1032,7 +1032,7 @@ export default function TworldPage() {
 
       <header className="tworld-header">
         <div className="header-inner">
-          <div className="logo">
+          <Link href="/tworld" className="logo">
             <Image
               src="/Tworld/T.png"
               alt="T world"
@@ -1040,8 +1040,9 @@ export default function TworldPage() {
               height={40}
               priority
             />
-          </div>
+          </Link>
           <nav className="nav">
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>초기화면</Link>
             <a href="https://shop.tworld.co.kr/shop/main?referrer=" target="_blank" rel="noopener noreferrer">T 다이렉트샵</a>
             <Link href="/customer/history" style={{ textDecoration: 'none', color: 'inherit' }}>MY</Link>
             <a onClick={() => setActiveModal('membership')}>혜택</a>

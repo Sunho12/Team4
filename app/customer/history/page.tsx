@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatDistanceToNow } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface ConversationHistory {
   id: string
@@ -92,13 +93,29 @@ export default function HistoryPage() {
       {/* Header */}
       <div className="border-b bg-white shadow-sm">
         <div className="container mx-auto p-4 max-w-4xl flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">내 상담 이력</h1>
-            <p className="text-sm text-muted-foreground">지금까지의 모든 상담 내역입니다</p>
+          <div className="flex items-center gap-4">
+            <Link href="/tworld" className="cursor-pointer">
+              <Image
+                src="/Tworld/T.png"
+                alt="T world"
+                width={32}
+                height={32}
+                priority
+              />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold">내 상담 이력</h1>
+              <p className="text-sm text-muted-foreground">지금까지의 모든 상담 내역입니다</p>
+            </div>
           </div>
-          <Link href="/chat">
-            <Button variant="outline">챗봇으로</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/">
+              <Button variant="outline" size="sm">초기화면</Button>
+            </Link>
+            <Link href="/chat">
+              <Button variant="outline" size="sm">챗봇으로</Button>
+            </Link>
+          </div>
         </div>
       </div>
 
