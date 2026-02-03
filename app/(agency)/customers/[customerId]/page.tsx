@@ -300,17 +300,42 @@ export default function CustomerDetailPage() {
             title: '신규 기기 교체 프로모션',
             description: data.deviceUpgradeReasoning,
             priority: data.deviceUpgradeScore > 70 ? 'high' : 'medium',
-            confidence: data.deviceUpgradeScore
+            confidence: data.deviceUpgradeScore,
+            type: 'device'
           })
         }
 
         if (data.planChangeScore > 50) {
-          services.push({
+          // 요금제 변경 - 구체적인 추천 형식으로 변경
+          let planRecommendation = {
             title: '맞춤 요금제 추천',
-            description: data.planChangeReasoning,
+            description: '',
             priority: data.planChangeScore > 70 ? 'high' : 'medium',
-            confidence: data.planChangeScore
-          })
+            confidence: data.planChangeScore,
+            type: 'plan',
+            options: [] as { name: string; description: string }[]
+          }
+
+          // 점수에 따라 다른 추천 제공
+          if (data.planChangeScore >= 70) {
+            // 높은 변경 확률 - 데이터 사용량 초과 추정
+            planRecommendation.description = '데이터 사용량 초과 니즈에 맞는 요금제를 추천해보세요'
+            planRecommendation.options = [
+              { name: '5G 프리미엄 플러스', description: '무제한 데이터 + 최고 속도 보장' },
+              { name: '5G 프리미엄', description: '100GB + 프리미엄 혜택' },
+              { name: '5G 스탠다드', description: '50GB + 합리적인 가격' }
+            ]
+          } else if (data.planChangeScore >= 50) {
+            // 중간 변경 확률 - 요금 절감 또는 최적화 추정
+            planRecommendation.description = '합리적인 요금 절감 니즈에 맞는 요금제를 추천해보세요'
+            planRecommendation.options = [
+              { name: '5G 스탠다드', description: '50GB + 적정 가격대' },
+              { name: '5G 라이트', description: '30GB + 경제적' },
+              { name: '데이터 ON 비디오', description: '동영상 무제한 특화' }
+            ]
+          }
+
+          services.push(planRecommendation)
         }
 
         if (services.length === 0) {
@@ -318,7 +343,8 @@ export default function CustomerDetailPage() {
             title: '고객 만족도 유지 관리',
             description: '현재 고객이 안정적인 상태입니다. 정기적인 혜택 안내로 관계를 유지하세요.',
             priority: 'low',
-            confidence: data.overallScore
+            confidence: data.overallScore,
+            type: 'maintenance'
           })
         }
 
@@ -1212,18 +1238,18 @@ export default function CustomerDetailPage() {
                           {isRecent && (
                             <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
                           )}
-                          <Badge className={`${getSentimentColor(conv.summary.sentiment)} text-white text-xs`}>
-                            {getSentimentText(conv.summary.sentiment)}
+                          <Badge className={`${getSentimentColor(conv.summary!.sentiment)} text-white text-xs`}>
+                            {getSentimentText(conv.summary!.sentiment)}
                           </Badge>
                         </div>
 
                         <div className="flex items-center gap-2 mb-3">
                           <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
-                            {conv.summary.category}
+                            {conv.summary!.category}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
-                          {conv.summary.summary}
+                          {conv.summary!.summary}
                         </p>
                       </div>
                     )
@@ -1435,8 +1461,32 @@ export default function CustomerDetailPage() {
                   <p className="text-sm text-gray-700 leading-relaxed mb-3">
                     {service.description}
                   </p>
+
+                  {/* 요금제 선택지 표시 */}
+                  {service.type === 'plan' && service.options && service.options.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">추천 요금제</p>
+                      {service.options.map((option: any, optIdx: number) => (
+                        <div
+                          key={optIdx}
+                          className="bg-white rounded-xl p-4 border border-gray-200 hover:border-[#3617CE] hover:shadow-md transition-all cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="text-sm font-bold text-gray-900">{option.name}</h4>
+                              <p className="text-xs text-gray-600 mt-1">{option.description}</p>
+                            </div>
+                            <div className="text-xs text-[#3617CE] font-semibold">
+                              제안하기 →
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {service.priority === 'high' && (
-                    <Badge className="bg-[#EA002C] text-white">우선 제안</Badge>
+                    <Badge className="bg-[#EA002C] text-white mt-3">우선 제안</Badge>
                   )}
                 </div>
               ))}
