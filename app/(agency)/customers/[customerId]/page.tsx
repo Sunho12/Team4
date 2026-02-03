@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { format, differenceInDays } from 'date-fns'
-import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag, ChevronDown, ChevronUp } from 'lucide-react'
+import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag, ChevronDown, ChevronUp, LineChart, UserSearch, Copy, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -31,6 +31,15 @@ interface Conversation {
   }
 }
 
+interface ConsultationInsight {
+  title: string
+  content: string
+  tag: string
+  icon: string
+  priority: 'high' | 'medium' | 'low'
+  type: 'dealership' | 'customer_specific'
+}
+
 export default function CustomerDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -38,7 +47,7 @@ export default function CustomerDetailPage() {
 
   const [customer, setCustomer] = useState<any>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [consultationPoints, setConsultationPoints] = useState<string[]>([])
+  const [consultationPoints, setConsultationPoints] = useState<ConsultationInsight[]>([])
   const [predictedServices, setPredictedServices] = useState<any[]>([])
   const [insights, setInsights] = useState({
     deviceChangeRate: 0,
@@ -272,26 +281,66 @@ export default function CustomerDetailPage() {
           overallReasoning: data.overallReasoning || ''
         })
 
-        // 상담 개선 포인트 생성 (예측 기반)
-        const points: string[] = []
+        // 상담 개선 포인트 생성 (AI 기반 구조화된 인사이트)
+        const insights: ConsultationInsight[] = []
 
-        if (data.complaintRate > 60) {
-          points.push('고객 불만이 높은 상태입니다. 신속하고 친절한 응대가 필요합니다.')
+        // 1. 대리점 차원의 일반적 개선점 (리뷰 트렌드 기반)
+        insights.push({
+          title: '서비스 개선점',
+          content: '최근 긴 대기시간에 대한 불만이 있습니다. 빠르게 서비스를 제공해보세요!',
+          tag: '매장 트렌드',
+          icon: '🏢',
+          priority: 'medium',
+          type: 'dealership'
+        })
+
+        // 2. 고객 맞춤형 상담 전략
+        let customerAdvice = ''
+        let advicePriority: 'high' | 'medium' | 'low' = 'medium'
+
+        // 고객 감정 상태에 따른 조언
+        const recentSentiment = conversations.length > 0 && conversations[0].summary?.sentiment
+
+        if (data.complaintRate > 60 || recentSentiment === 'negative') {
+          customerAdvice = '이 고객님은 최근 불만이 높은 상태입니다. 상담 시작 전 "불편하신 점을 먼저 들어보겠습니다"라는 공감 표현으로 시작하세요. 문제 해결 절차를 단계별로 설명하고, 해결 예상 시간을 명확히 제시하면 신뢰도가 높아집니다.'
+          advicePriority = 'high'
+        } else if (data.deviceUpgradeScore > 50 && data.planChangeScore > 50) {
+          customerAdvice = '이 고객님은 종합적인 "변화"를 고려 중입니다. 단순히 단말기나 요금제만 제안하지 말고, "고객님의 현재 사용 패턴에서 개선할 점"을 먼저 분석하여 제시하세요. 예: "데이터를 많이 사용하시는데 요금제를 바꾸시면 월 2만원 절약 가능합니다" 같은 구체적 수치 중심 접근이 효과적입니다.'
+          advicePriority = 'high'
+        } else if (data.deviceUpgradeScore > 50) {
+          customerAdvice = '기기 교체 니즈가 높습니다. 이 고객님은 "성능"보다 "혜택"에 관심이 많을 가능성이 높습니다. 공시지원금과 추가지원금 합계를 강조하고, 할부 이자율보다는 "월 부담금"으로 설명하세요.'
+          advicePriority = 'high'
+        } else if (data.planChangeScore > 50) {
+          customerAdvice = '요금제 변경 관심도가 높습니다. 현재 요금제 대비 "절감 금액"을 먼저 계산해서 보여주고, 데이터 사용 패턴이 바뀌었을 때의 시나리오도 함께 제시하면 설득력이 높아집니다.'
+          advicePriority = 'medium'
+        } else {
+          customerAdvice = '안정적인 고객입니다. 무리한 상품 제안보다는 "멤버십 혜택 안내"나 "이벤트 정보"를 중심으로 관계를 유지하세요. 예: "다음 달에 고객님께 유용한 프로모션이 있어서 미리 알려드립니다" 같은 선제적 케어가 효과적입니다.'
+          advicePriority = 'low'
         }
 
-        if (data.deviceUpgradeScore > 50) {
-          points.push('기기 변경 의향이 높습니다. 최신 기기 프로모션을 우선 안내하세요.')
+        insights.push({
+          title: '고객 맞춤 상담 전략',
+          content: customerAdvice,
+          tag: '고객 성향 분석',
+          icon: advicePriority === 'high' ? '🎯' : '💡',
+          priority: advicePriority,
+          type: 'customer_specific'
+        })
+
+        // 3. 상담 키워드 제안 (고객 과거 대화 분석)
+        if (conversations.length > 0 && conversations[0].summary?.keywords) {
+          const keywords = conversations[0].summary.keywords.slice(0, 3).join(', ')
+          insights.push({
+            title: '최근 관심 키워드',
+            content: `이 고객님은 최근 상담에서 "${keywords}"에 높은 관심을 보였습니다. 오늘 상담 시 이 주제를 먼저 확인하고 시작하면 고객 만족도가 높아집니다.`,
+            tag: '상담 이력',
+            icon: '🔑',
+            priority: 'medium',
+            type: 'customer_specific'
+          })
         }
 
-        if (data.planChangeScore > 50) {
-          points.push('요금제 변경에 관심이 있습니다. 고객 사용 패턴에 맞는 요금제를 제안하세요.')
-        }
-
-        if (points.length === 0) {
-          points.push('고객이 안정적인 상태입니다. 정기적인 혜택 안내로 관계를 유지하세요.')
-        }
-
-        setConsultationPoints(points)
+        setConsultationPoints(insights)
 
         // 예상 필요 서비스 생성
         const services: any[] = []
@@ -1209,75 +1258,89 @@ export default function CustomerDetailPage() {
           </Button>
         </Link>
 
-        {/* 1. 고객 기본 정보 섹션 */}
+        {/* 1. 고객 기본 정보 섹션 - Optimized */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#3617CE] to-[#5B3FE8] rounded-2xl flex items-center justify-center text-white shadow-lg">
-                <User className="w-8 h-8" />
+              <div className="w-14 h-14 bg-gradient-to-br from-[#3617CE] to-[#5B3FE8] rounded-xl flex items-center justify-center text-white shadow-md">
+                <User className="w-7 h-7" />
               </div>
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900">{customer.customer_name || '이름 없음'}</h1>
+              <div className="flex items-baseline gap-3">
+                <h1 className="text-3xl font-bold text-gray-900">{customer.customer_name || '이름 없음'}</h1>
+                <span className="text-sm text-slate-500 font-medium">
+                  ({customer.birthdate || '생년월일 없음'} | {customer.customer_phone || '010-0000-0000'})
+                </span>
+                <Badge className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] text-white px-3 py-1 text-xs font-semibold">
+                  VIP
+                </Badge>
               </div>
             </div>
-            <Badge className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] text-white px-4 py-2 text-sm">
-              VIP 고객
-            </Badge>
           </div>
 
-          {/* 인포그래픽 스타일 정보 그리드 */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-4 border border-blue-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <p className="text-sm font-semibold text-blue-900">생년월일</p>
+          {/* 최적화된 정보 그리드 - 5 Cards */}
+          <div className="grid grid-cols-5 gap-4">
+            {/* 할부 정보 카드 */}
+            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+              <div className="flex items-center gap-2 mb-3">
+                <CreditCard className="w-4 h-4 text-slate-600" strokeWidth={2.5} />
+                <p className="text-xs font-semibold text-slate-700">할부 정보</p>
               </div>
-              <p className="text-base font-bold text-blue-900">{customer.birthdate || '정보 없음'}</p>
+              <div className="mb-2">
+                <p className="text-lg font-bold text-slate-900 font-mono">12 / 24개월</p>
+                <p className="text-xs text-slate-500 mt-0.5">50% 완료</p>
+              </div>
+              <Progress value={50} className="h-1.5" />
             </div>
 
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100/50 rounded-2xl p-4 border border-pink-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Phone className="w-5 h-5 text-pink-600" />
-                <p className="text-sm font-semibold text-pink-900">연락처</p>
+            {/* 위약금 정보 카드 */}
+            <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-red-600" strokeWidth={2.5} />
+                <p className="text-xs font-semibold text-red-700">위약금</p>
               </div>
-              <p className="text-base font-bold text-pink-900">{customer.customer_phone || '010-0000-0000'}</p>
+              <p className="text-lg font-bold text-red-600 font-mono">₩120,000</p>
+              <p className="text-xs text-red-500 mt-0.5">해지 시 발생</p>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-2xl p-4 border border-green-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Wifi className="w-5 h-5 text-green-600" />
-                <p className="text-sm font-semibold text-green-900">결합상품</p>
+            {/* 결합상품 */}
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Wifi className="w-4 h-4 text-green-600" strokeWidth={2.5} />
+                <p className="text-xs font-semibold text-green-700">결합상품</p>
               </div>
-              <div className="flex gap-2">
-                {customer.family_members_count > 0 ? (
-                  <p className="text-base font-bold text-green-900">가족결합 {customer.family_members_count}인</p>
-                ) : (
-                  <span className="text-sm text-gray-600">없음</span>
-                )}
-              </div>
+              {customer.family_members_count > 0 ? (
+                <>
+                  <p className="text-lg font-bold text-green-900">가족결합</p>
+                  <p className="text-xs text-green-600 mt-0.5">{customer.family_members_count}인</p>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">없음</p>
+              )}
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl p-4 border border-purple-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Smartphone className="w-5 h-5 text-purple-600" />
-                <p className="text-sm font-semibold text-purple-900">단말기</p>
+            {/* 단말기 */}
+            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Smartphone className="w-4 h-4 text-purple-600" strokeWidth={2.5} />
+                <p className="text-xs font-semibold text-purple-700">단말기</p>
               </div>
-              <p className="text-base font-bold text-purple-900">{customer.device_model_name || '정보 없음'}</p>
+              <p className="text-sm font-bold text-purple-900 leading-tight">{customer.device_model_name || '정보 없음'}</p>
               {customer.device_purchase_date && (
-                <p className="text-xs text-purple-700 mt-1">
-                  구매일: {format(new Date(customer.device_purchase_date), 'yyyy.MM.dd')}
+                <p className="text-xs text-purple-600 mt-1">
+                  {format(new Date(customer.device_purchase_date), 'yyyy.MM.dd')}
                 </p>
               )}
             </div>
 
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl p-4 border border-orange-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <CreditCard className="w-5 h-5 text-orange-600" />
-                <p className="text-sm font-semibold text-orange-900">현재 요금제</p>
+            {/* 현재 요금제 */}
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="w-4 h-4 text-blue-600" strokeWidth={2.5} />
+                <p className="text-xs font-semibold text-blue-700">현재 요금제</p>
               </div>
-              <p className="text-base font-bold text-orange-900">{customer.plan_name || '정보 없음'}</p>
+              <p className="text-sm font-bold text-blue-900 leading-tight">{customer.plan_name || '정보 없음'}</p>
               {customer.plan_price && (
-                <p className="text-xs text-orange-700 mt-1">월 {customer.plan_price.toLocaleString()}원</p>
+                <p className="text-xs text-blue-600 mt-1 font-mono">₩{customer.plan_price.toLocaleString()}/월</p>
               )}
             </div>
           </div>
@@ -1342,36 +1405,94 @@ export default function CustomerDetailPage() {
             </div>
           </div>
 
-          {/* [구획 나] 상담 개선 포인트 */}
+          {/* [구획 나] AI 상담 어시스턴트 - Professional Data Viz */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Lightbulb className="w-6 h-6 text-[#FF7A00]" />
-              상담 개선 포인트
+            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-slate-600" strokeWidth={2.5} />
+              AI 상담 어시스턴트
             </h2>
 
-            <div className="space-y-4">
-              {consultationPoints.map((point, index) => (
-                <div
-                  key={index}
-                  className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-5 border border-orange-200/50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-[#FF7A00] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {index + 1}
-                    </div>
-                    <p className="text-sm text-gray-800 leading-relaxed pt-1">
-                      {point}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="space-y-3">
+              {consultationPoints.map((insight, index) => {
+                // 타입별 스타일 및 아이콘 설정
+                const getInsightConfig = () => {
+                  if (insight.type === 'dealership') {
+                    return {
+                      accentColor: 'border-blue-500',
+                      icon: LineChart,
+                      iconColor: 'text-blue-600',
+                      iconBg: 'bg-blue-50'
+                    }
+                  } else {
+                    return {
+                      accentColor: 'border-amber-500',
+                      icon: UserSearch,
+                      iconColor: 'text-amber-600',
+                      iconBg: 'bg-amber-50'
+                    }
+                  }
+                }
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="flex items-center gap-2 text-sm text-blue-800">
-                <AlertCircle className="w-4 h-4" />
-                <span className="font-semibold">AI가 과거 상담 데이터를 분석하여 생성한 추천입니다.</span>
-              </div>
+                const config = getInsightConfig()
+                const IconComponent = config.icon
+
+                // 핵심 요약과 상세 분리
+                const [summary, ...details] = insight.content.split('.')
+                const detailText = details.join('.').trim()
+
+                return (
+                  <div
+                    key={index}
+                    className={`bg-white rounded-lg border-l-4 ${config.accentColor} border border-slate-200 p-5 hover:shadow-sm transition-all`}
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className={`w-9 h-9 ${config.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <IconComponent className={`w-4.5 h-4.5 ${config.iconColor}`} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-semibold text-slate-900">{insight.title}</h3>
+                            <Badge variant="outline" className="text-xs text-slate-600 border-slate-300">
+                              {insight.tag}
+                            </Badge>
+                            {insight.priority === 'high' && (
+                              <Badge className="bg-red-100 text-red-700 text-xs border-red-200">
+                                긴급
+                              </Badge>
+                            )}
+                          </div>
+                          {/* 핵심 요약 */}
+                          <p className="text-sm font-bold text-slate-900 mb-1">
+                            {summary}.
+                          </p>
+                          {/* 상세 내용 */}
+                          {detailText && (
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                              {detailText}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+                      <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors">
+                        <Copy className="w-3.5 h-3.5" />
+                        스크립트 복사
+                      </button>
+                      {insight.type === 'customer_specific' && (
+                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors">
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          요금제 비교
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
