@@ -5,8 +5,9 @@ import { useParams, useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { format, differenceInDays } from 'date-fns'
-import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag, ChevronDown, ChevronUp } from 'lucide-react'
+import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag, ChevronDown, ChevronUp, LineChart, UserSearch, Copy, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -31,6 +32,15 @@ interface Conversation {
   }
 }
 
+interface ConsultationInsight {
+  title: string
+  content: string
+  tag: string
+  icon: string
+  priority: 'high' | 'medium' | 'low'
+  type: 'dealership' | 'customer_specific'
+}
+
 export default function CustomerDetailPage() {
   const router = useRouter()
   const params = useParams()
@@ -38,7 +48,7 @@ export default function CustomerDetailPage() {
 
   const [customer, setCustomer] = useState<any>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [consultationPoints, setConsultationPoints] = useState<string[]>([])
+  const [consultationPoints, setConsultationPoints] = useState<ConsultationInsight[]>([])
   const [predictedServices, setPredictedServices] = useState<any[]>([])
   const [insights, setInsights] = useState({
     deviceChangeRate: 0,
@@ -55,8 +65,18 @@ export default function CustomerDetailPage() {
   const [showUrgentAlert, setShowUrgentAlert] = useState(false)
   const [latestConsultation, setLatestConsultation] = useState<string>('')
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [isRefreshingServices, setIsRefreshingServices] = useState(false)
 
-  // 각 지표 토글 상태
+  // 모달 상태
+  const [isConversationModalOpen, setIsConversationModalOpen] = useState(false)
+  const [isInsightsModalOpen, setIsInsightsModalOpen] = useState(false)
+  const [selectedService, setSelectedService] = useState<any>(null)
+  const [isServiceModalOpen, setIsServiceModalOpen] = useState(false)
+
+  // 짧은 요약 state
+  const [shortSummaries, setShortSummaries] = useState<{ [key: string]: string }>({})
+
+  // 각 지표 토글 상태 (모달에서 사용)
   const [toggleStates, setToggleStates] = useState({
     device: false,
     plan: false,
@@ -139,6 +159,39 @@ export default function CustomerDetailPage() {
     }
   }
 
+  const generateShortSummaries = async (convs: Conversation[]) => {
+    // 요약이 있는 상담만 필터링
+    const convsWithSummary = convs.filter(conv => conv.summary?.summary)
+
+    // 각 상담에 대해 짧은 요약 생성
+    const summaries: { [key: string]: string } = {}
+
+    await Promise.all(
+      convsWithSummary.map(async (conv) => {
+        try {
+          const response = await fetch('/api/chat/summarize-short', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ summary: conv.summary!.summary })
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            summaries[conv.id] = data.shortSummary
+          } else {
+            // 실패 시 원본 요약의 앞 15자 사용
+            summaries[conv.id] = conv.summary!.summary.substring(0, 15) + '...'
+          }
+        } catch (error) {
+          console.error(`Failed to generate short summary for ${conv.id}:`, error)
+          summaries[conv.id] = conv.summary!.summary.substring(0, 15) + '...'
+        }
+      })
+    )
+
+    setShortSummaries(summaries)
+  }
+
   const loadConversations = async (): Promise<Conversation[]> => {
     try {
       // Supabase에서 conversations와 messages 가져오기
@@ -147,6 +200,12 @@ export default function CustomerDetailPage() {
         const data = await response.json()
         const convs = data.conversations || []
         setConversations(convs)
+
+        // 짧은 요약 생성
+        if (convs.length > 0) {
+          generateShortSummaries(convs)
+        }
+
         return convs
       }
     } catch (error) {
@@ -271,26 +330,66 @@ export default function CustomerDetailPage() {
           overallReasoning: data.overallReasoning || ''
         })
 
-        // 상담 개선 포인트 생성 (예측 기반)
-        const points: string[] = []
+        // 상담 개선 포인트 생성 (AI 기반 구조화된 인사이트)
+        const insights: ConsultationInsight[] = []
 
-        if (data.complaintRate > 60) {
-          points.push('고객 불만이 높은 상태입니다. 신속하고 친절한 응대가 필요합니다.')
+        // 1. 대리점 차원의 일반적 개선점 (리뷰 트렌드 기반)
+        insights.push({
+          title: '서비스 개선점',
+          content: '최근 긴 대기시간에 대한 불만이 있습니다. 빠르게 서비스를 제공해보세요!',
+          tag: '매장 트렌드',
+          icon: '🏢',
+          priority: 'medium',
+          type: 'dealership'
+        })
+
+        // 2. 고객 맞춤형 상담 전략
+        let customerAdvice = ''
+        let advicePriority: 'high' | 'medium' | 'low' = 'medium'
+
+        // 고객 감정 상태에 따른 조언
+        const recentSentiment = conversations.length > 0 && conversations[0].summary?.sentiment
+
+        if (data.complaintRate > 60 || recentSentiment === 'negative') {
+          customerAdvice = '이 고객님은 최근 불만이 높은 상태입니다. 상담 시작 전 "불편하신 점을 먼저 들어보겠습니다"라는 공감 표현으로 시작하세요. 문제 해결 절차를 단계별로 설명하고, 해결 예상 시간을 명확히 제시하면 신뢰도가 높아집니다.'
+          advicePriority = 'high'
+        } else if (data.deviceUpgradeScore > 50 && data.planChangeScore > 50) {
+          customerAdvice = '이 고객님은 종합적인 "변화"를 고려 중입니다. 단순히 단말기나 요금제만 제안하지 말고, "고객님의 현재 사용 패턴에서 개선할 점"을 먼저 분석하여 제시하세요. 예: "데이터를 많이 사용하시는데 요금제를 바꾸시면 월 2만원 절약 가능합니다" 같은 구체적 수치 중심 접근이 효과적입니다.'
+          advicePriority = 'high'
+        } else if (data.deviceUpgradeScore > 50) {
+          customerAdvice = '기기 교체 니즈가 높습니다. 이 고객님은 "성능"보다 "혜택"에 관심이 많을 가능성이 높습니다. 공시지원금과 추가지원금 합계를 강조하고, 할부 이자율보다는 "월 부담금"으로 설명하세요.'
+          advicePriority = 'high'
+        } else if (data.planChangeScore > 50) {
+          customerAdvice = '요금제 변경 관심도가 높습니다. 현재 요금제 대비 "절감 금액"을 먼저 계산해서 보여주고, 데이터 사용 패턴이 바뀌었을 때의 시나리오도 함께 제시하면 설득력이 높아집니다.'
+          advicePriority = 'medium'
+        } else {
+          customerAdvice = '안정적인 고객입니다. 무리한 상품 제안보다는 "멤버십 혜택 안내"나 "이벤트 정보"를 중심으로 관계를 유지하세요. 예: "다음 달에 고객님께 유용한 프로모션이 있어서 미리 알려드립니다" 같은 선제적 케어가 효과적입니다.'
+          advicePriority = 'low'
         }
 
-        if (data.deviceUpgradeScore > 50) {
-          points.push('기기 변경 의향이 높습니다. 최신 기기 프로모션을 우선 안내하세요.')
+        insights.push({
+          title: '고객 맞춤 상담 전략',
+          content: customerAdvice,
+          tag: '고객 성향 분석',
+          icon: advicePriority === 'high' ? '🎯' : '💡',
+          priority: advicePriority,
+          type: 'customer_specific'
+        })
+
+        // 3. 상담 키워드 제안 (고객 과거 대화 분석)
+        if (conversations.length > 0 && conversations[0].summary?.keywords) {
+          const keywords = conversations[0].summary.keywords.slice(0, 3).join(', ')
+          insights.push({
+            title: '최근 관심 키워드',
+            content: `이 고객님은 최근 상담에서 "${keywords}"에 높은 관심을 보였습니다. 오늘 상담 시 이 주제를 먼저 확인하고 시작하면 고객 만족도가 높아집니다.`,
+            tag: '상담 이력',
+            icon: '🔑',
+            priority: 'medium',
+            type: 'customer_specific'
+          })
         }
 
-        if (data.planChangeScore > 50) {
-          points.push('요금제 변경에 관심이 있습니다. 고객 사용 패턴에 맞는 요금제를 제안하세요.')
-        }
-
-        if (points.length === 0) {
-          points.push('고객이 안정적인 상태입니다. 정기적인 혜택 안내로 관계를 유지하세요.')
-        }
-
-        setConsultationPoints(points)
+        setConsultationPoints(insights)
 
         // 예상 필요 서비스 생성
         const services: any[] = []
@@ -306,36 +405,84 @@ export default function CustomerDetailPage() {
         }
 
         if (data.planChangeScore > 50) {
-          // 요금제 변경 - 구체적인 추천 형식으로 변경
-          let planRecommendation = {
-            title: '맞춤 요금제 추천',
-            description: '',
-            priority: data.planChangeScore > 70 ? 'high' : 'medium',
-            confidence: data.planChangeScore,
-            type: 'plan',
-            options: [] as { name: string; description: string }[]
-          }
+          // 요금제 변경 - 상세한 추천 형식으로 변경
+          const planRecommendations = []
 
           // 점수에 따라 다른 추천 제공
           if (data.planChangeScore >= 70) {
-            // 높은 변경 확률 - 데이터 사용량 초과 추정
-            planRecommendation.description = '데이터 사용량 초과 니즈에 맞는 요금제를 추천해보세요'
-            planRecommendation.options = [
-              { name: '5G 프리미엄 플러스', description: '무제한 데이터 + 최고 속도 보장' },
-              { name: '5G 프리미엄', description: '100GB + 프리미엄 혜택' },
-              { name: '5G 스탠다드', description: '50GB + 합리적인 가격' }
-            ]
-          } else if (data.planChangeScore >= 50) {
-            // 중간 변경 확률 - 요금 절감 또는 최적화 추정
-            planRecommendation.description = '합리적인 요금 절감 니즈에 맞는 요금제를 추천해보세요'
-            planRecommendation.options = [
-              { name: '5G 스탠다드', description: '50GB + 적정 가격대' },
-              { name: '5G 라이트', description: '30GB + 경제적' },
-              { name: '데이터 ON 비디오', description: '동영상 무제한 특화' }
-            ]
+            // 추천 1: 5G 프리미엄 플러스
+            planRecommendations.push({
+              rank: 1,
+              name: '5G 프리미엄 플러스',
+              score: Math.min(95, data.planChangeScore + Math.floor(Math.random() * 10)),
+              customerNeed: '데이터 무제한을 원하시며, 현재 온가족할인 30% 대상자입니다.',
+              bestOffer: '요금제 상향 시 기기값 할부금이 0원이 되는 공시지원금 상향 정책 적용 모델입니다.',
+              revenue: {
+                commission: 450000,
+                increase: 50000,
+                additionalPolicy: '우주패스 life 가입 시 유지 수수료 건당 5,000원 추가 지급'
+              }
+            })
+
+            // 추천 2: 5G 프리미엄
+            planRecommendations.push({
+              rank: 2,
+              name: '5G 프리미엄',
+              score: Math.min(90, data.planChangeScore + Math.floor(Math.random() * 5)),
+              customerNeed: '매월 80~90GB를 사용하시어 현재 요금제에서 데이터 초과 직전입니다.',
+              bestOffer: '데이터 안심 옵션보다 5,000원만 더 내면 100GB를 쓰는 것이 장기적으로 훨씬 이득입니다.',
+              revenue: {
+                commission: 380000,
+                performance: '고가 요금제 유치 목표(현재 85% 달성) 달성 시 건당 가중치 1.2배 적용'
+              }
+            })
+
+            // 추천 3: 0 청년 69
+            planRecommendations.push({
+              rank: 3,
+              name: '0 청년 69',
+              score: Math.min(85, data.planChangeScore),
+              customerNeed: '만 34세 이하 고객으로, 커피/영화 등 생활 밀착형 혜택 선호도가 높습니다.',
+              bestOffer: '일반 요금제보다 데이터 2배 제공 정책이 적용되는 청년 전용 요금제로 만족도를 높이세요.',
+              revenue: {
+                commission: 320000,
+                longTermBenefit: '청년 고객 유치 시 향후 기변 정책 가중치 부여 대상'
+              }
+            })
+          } else {
+            // 중간 점수 - 경제형 요금제 추천
+            planRecommendations.push({
+              rank: 1,
+              name: '5G 스탠다드',
+              score: Math.min(80, data.planChangeScore + 5),
+              customerNeed: '현재 요금제 대비 데이터를 10GB 더 사용하시는 패턴이 관찰됩니다.',
+              bestOffer: '월 5천원 추가로 데이터 걱정 없이 사용하실 수 있습니다.',
+              revenue: {
+                commission: 280000,
+                performance: '중급 요금제 유치 목표 달성 시 인센티브 지급'
+              }
+            })
+
+            planRecommendations.push({
+              rank: 2,
+              name: '5G 라이트',
+              score: Math.min(75, data.planChangeScore),
+              customerNeed: '데이터 사용량이 적고 요금 절감을 원하시는 것으로 분석됩니다.',
+              bestOffer: '현재 요금제 대비 월 1만원 절감 가능합니다.',
+              revenue: {
+                commission: 220000,
+                additionalPolicy: '요금제 하향 시에도 수수료 지급 정책 적용'
+              }
+            })
           }
 
-          services.push(planRecommendation)
+          services.push({
+            title: '맞춤 요금제 추천',
+            priority: data.planChangeScore > 70 ? 'high' : 'medium',
+            confidence: data.planChangeScore,
+            type: 'plan',
+            recommendations: planRecommendations
+          })
         }
 
         if (services.length === 0) {
@@ -410,21 +557,49 @@ export default function CustomerDetailPage() {
     }
   }
 
+  const refreshServices = async () => {
+    setIsRefreshingServices(true)
+
+    // 시뮬레이션: 2초 대기
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    // AI 분석 다시 실행
+    await analyzeCustomer()
+
+    setIsRefreshingServices(false)
+  }
+
   if (isLoading) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8"
         style={{
-          backgroundColor: 'rgba(248, 248, 255, 0.95)'
+          backgroundColor: 'rgba(251, 251, 251, 0.95)',
+          fontFamily: "'SK Mobius', sans-serif"
         }}
       >
         <Image
           src="/adot_loading.gif"
           alt="Loading..."
-          width={800}
-          height={350}
+          width={300}
+          height={300}
           unoptimized
         />
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#3617CE]/10 to-[#5B3FE8]/10 rounded-2xl border-2 border-[#3617CE]/20">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-[#3617CE] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-[#3617CE] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-[#3617CE] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            <p className="text-lg font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent">
+              T-Bridge가 실시간으로 데이터를 연결하고 있습니다
+            </p>
+          </div>
+          <p className="text-sm text-gray-500 animate-pulse">
+            고객 정보를 분석하여 최적의 인사이트를 준비하고 있습니다
+          </p>
+        </div>
       </div>
     )
   }
@@ -797,12 +972,12 @@ export default function CustomerDetailPage() {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: '#F8F9FA', fontFamily: "'SK Mobius', sans-serif" }}>
+    <div className="min-h-screen p-4" style={{ backgroundColor: '#F8F9FA', fontFamily: "'SK Mobius', sans-serif" }}>
       {/* 긴급 상담 브리핑 팝업 */}
       {showUrgentAlert && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" style={{ fontFamily: "'SK Mobius', sans-serif" }}>
           <div
-            className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-shake border border-gray-200/50"
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border border-gray-200/50"
           >
             {/* 헤더 - 대시보드 스타일 (T-Bridge Purple) */}
             <div className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] p-6 text-white">
@@ -821,7 +996,7 @@ export default function CustomerDetailPage() {
             <div className="p-6 space-y-4">
               {/* 최신 상담 내역 - 대시보드 카드 스타일 */}
               <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-5 border border-blue-200/50">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-5 h-5 text-[#3617CE]" />
                   <h3 className="text-sm font-semibold text-gray-900">최신 상담 내역</h3>
                 </div>
@@ -832,7 +1007,7 @@ export default function CustomerDetailPage() {
 
               {/* 불만 지수 - SK Red 유지 (경고 표시) */}
               <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-5 border border-red-200/50">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-5 h-5 text-[#EA002C]" />
                   <h3 className="text-sm font-semibold text-gray-900">현재 불만 지수</h3>
                 </div>
@@ -902,160 +1077,6 @@ export default function CustomerDetailPage() {
       )}
 
       {/* 상담 상세 정보 모달 */}
-      {selectedConversation && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div
-            className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
-            style={{ fontFamily: "'SK Mobius', sans-serif" }}
-          >
-            {/* 헤더 */}
-            <div className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                    <MessageSquare className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">상담 상세 내역</h2>
-                    <p className="text-sm text-white/90 mt-1">
-                      {format(new Date(selectedConversation.started_at), 'yyyy년 MM월 dd일 HH:mm')}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedConversation(null)}
-                  className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-
-              {/* 카테고리 및 감정 */}
-              {selectedConversation.summary && (
-                <div className="flex items-center gap-3 mt-4">
-                  <Badge variant="outline" className="bg-white/20 text-white border-white/40">
-                    {selectedConversation.summary.category}
-                  </Badge>
-                  <Badge className={`${getSentimentColor(selectedConversation.summary.sentiment)} text-white`}>
-                    {getSentimentText(selectedConversation.summary.sentiment)}
-                  </Badge>
-                </div>
-              )}
-            </div>
-
-            {/* 카드뉴스 스타일 내용 */}
-            <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)] space-y-6">
-              {selectedConversation.summary ? (
-                <>
-                  {/* 카드 1: 상담 카테고리 및 감정 */}
-                  <div className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-3xl p-8 border-2 border-purple-200 shadow-lg">
-                    <div className="text-center mb-6">
-                      <div className="inline-block p-4 bg-white rounded-full shadow-md mb-4">
-                        <MessageSquare className="w-12 h-12 text-[#3617CE]" />
-                      </div>
-                      <h3 className="text-3xl font-bold text-gray-900 mb-2">
-                        {selectedConversation.summary.category}
-                      </h3>
-                      <div className="flex items-center justify-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          selectedConversation.summary.sentiment === 'positive' ? 'bg-green-500' :
-                          selectedConversation.summary.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-500'
-                        }`}></div>
-                        <span className="text-lg font-semibold text-gray-700">
-                          {getSentimentText(selectedConversation.summary.sentiment)} 상담
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 카드 2: 상담 요약 */}
-                  <div className="bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50 rounded-3xl p-8 border-2 border-blue-200 shadow-lg">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-3 bg-white rounded-xl shadow-md">
-                        <MessageSquare className="w-8 h-8 text-[#3617CE]" />
-                      </div>
-                      <h3 className="text-2xl font-bold text-gray-900">상담 요약</h3>
-                    </div>
-                    <div className="bg-white/80 backdrop-blur rounded-2xl p-6 shadow-inner">
-                      <p className="text-base text-gray-800 leading-relaxed" style={{ lineHeight: '2' }}>
-                        {selectedConversation.summary.summary}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* 카드 3: 키워드 */}
-                  {selectedConversation.summary.keywords && selectedConversation.summary.keywords.length > 0 && (
-                    <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-3xl p-8 border-2 border-orange-200 shadow-lg">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="p-3 bg-white rounded-xl shadow-md">
-                          <Tag className="w-8 h-8 text-[#FF7A00]" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-900">핵심 키워드</h3>
-                      </div>
-                      <div className="flex flex-wrap gap-3 justify-center">
-                        {selectedConversation.summary.keywords.map((keyword, idx) => (
-                          <div
-                            key={idx}
-                            className="bg-white rounded-2xl px-6 py-4 shadow-md border-2 border-orange-200 hover:scale-105 transition-transform"
-                          >
-                            <span className="text-lg font-bold bg-gradient-to-r from-[#FF7A00] to-[#FFA500] bg-clip-text text-transparent">
-                              #{keyword}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* 카드 4: 상담 통계 */}
-                  <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-3xl p-8 border-2 border-green-200 shadow-lg">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
-                        <p className="text-sm font-semibold text-gray-600 mb-2">상담 시작</p>
-                        <p className="text-lg font-bold text-gray-900">
-                          {format(new Date(selectedConversation.started_at), 'HH:mm')}
-                        </p>
-                      </div>
-                      <div className="text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
-                        <p className="text-sm font-semibold text-gray-600 mb-2">상담 종료</p>
-                        <p className="text-lg font-bold text-gray-900">
-                          {selectedConversation.ended_at
-                            ? format(new Date(selectedConversation.ended_at), 'HH:mm')
-                            : '진행중'}
-                        </p>
-                      </div>
-                      <div className="col-span-2 text-center bg-white/80 backdrop-blur rounded-2xl p-6 shadow-md">
-                        <p className="text-sm font-semibold text-gray-600 mb-2">총 메시지</p>
-                        <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
-                          {selectedConversation.messages.length}개
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 text-lg">요약 정보가 없습니다.</p>
-                </div>
-              )}
-            </div>
-
-            {/* 하단 버튼 */}
-            <div className="p-6 pt-0 border-t">
-              <button
-                onClick={() => setSelectedConversation(null)}
-                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-all hover:scale-105 hover:shadow-xl"
-                style={{
-                  background: 'linear-gradient(135deg, #3617CE 0%, #5B3FE8 100%)',
-                  fontFamily: "'SK Mobius', sans-serif"
-                }}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <style jsx>{`
         @keyframes fadeIn {
@@ -1123,139 +1144,283 @@ export default function CustomerDetailPage() {
         }
       `}</style>
 
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-2">
         {/* 상단 뒤로가기 */}
         <Link href="/search">
-          <Button variant="ghost" className="mb-4">
+          <Button variant="ghost" className="">
             <ArrowLeft className="w-4 h-4 mr-2" />
             고객 검색으로 돌아가기
           </Button>
         </Link>
 
-        {/* 1. 고객 기본 정보 섹션 */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-[#3617CE] to-[#5B3FE8] rounded-2xl flex items-center justify-center text-white shadow-lg">
-                <User className="w-8 h-8" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900">{customer.customer_name || '이름 없음'}</h1>
-              </div>
+        {/* 1. 고객 기본 정보 섹션 - Enterprise Grade */}
+        <div className="bg-white rounded-lg border border-gray-100 p-4">
+          {/* Header: 고객 기본 정보 */}
+          <div className="flex items-center gap-3 pb-3 mb-3 border-b border-gray-100">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#3617CE' }}>
+              <User className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
-            <Badge className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] text-white px-4 py-2 text-sm">
-              VIP 고객
+            <div className="flex items-baseline gap-2.5 flex-1">
+              <h1 className="text-xl font-bold text-slate-900">{customer.customer_name || '이름 없음'}</h1>
+              <span className="text-xs text-slate-500 font-medium">
+                {customer.birthdate || '생년월일 없음'}
+              </span>
+              <span className="text-xs text-slate-400">|</span>
+              <span className="text-xs text-slate-500 font-medium">
+                {customer.customer_phone
+                  ? customer.customer_phone.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')
+                  : '010-0000-0000'}
+              </span>
+            </div>
+            <Badge
+              className="text-xs font-semibold px-2.5 py-0.5 border"
+              style={{ backgroundColor: '#3617CE', color: 'white', borderColor: '#3617CE' }}
+            >
+              VIP
             </Badge>
           </div>
 
-          {/* 인포그래픽 스타일 정보 그리드 */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-4 border border-blue-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <p className="text-sm font-semibold text-blue-900">생년월일</p>
+          {/* Body: 정보 그리드 - 5 Cards */}
+          <div className="grid grid-cols-5 gap-2.5">
+            {/* 할부 정보 카드 */}
+            <div className="bg-gray-50/50 rounded border border-gray-100 p-2.5 hover:border-gray-200 hover:bg-gray-50 transition-all">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <CreditCard className="w-3.5 h-3.5" style={{ color: '#3617CE' }} strokeWidth={2.5} />
+                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">할부 정보</p>
               </div>
-              <p className="text-base font-bold text-blue-900">{customer.birthdate || '정보 없음'}</p>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-base font-bold text-slate-900 leading-tight whitespace-nowrap">8 / 12개월</p>
+                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ backgroundColor: '#3617CE', width: '67%' }}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 font-medium">67% 완료</p>
+              </div>
             </div>
 
-            <div className="bg-gradient-to-br from-pink-50 to-pink-100/50 rounded-2xl p-4 border border-pink-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Phone className="w-5 h-5 text-pink-600" />
-                <p className="text-sm font-semibold text-pink-900">연락처</p>
+            {/* 위약금 정보 카드 */}
+            <div className="bg-gray-50/50 rounded border border-gray-100 p-2.5 hover:border-gray-200 hover:bg-gray-50 transition-all">
+              <div className="flex items-center gap-1.5 mb-2">
+                <AlertCircle className="w-3.5 h-3.5" style={{ color: '#3617CE' }} strokeWidth={2.5} />
+                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">위약금</p>
               </div>
-              <p className="text-base font-bold text-pink-900">{customer.customer_phone || '010-0000-0000'}</p>
+              <div className="space-y-1">
+                <p className="text-base font-bold text-slate-900 leading-tight">₩200,000</p>
+                <p className="text-xs text-slate-500 font-medium">해지 시 발생</p>
+              </div>
             </div>
 
-            <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-2xl p-4 border border-green-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Wifi className="w-5 h-5 text-green-600" />
-                <p className="text-sm font-semibold text-green-900">결합상품</p>
+            {/* 결합상품 */}
+            <div className="bg-gray-50/50 rounded border border-gray-100 p-2.5 hover:border-gray-200 hover:bg-gray-50 transition-all">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Wifi className="w-3.5 h-3.5" style={{ color: '#3617CE' }} strokeWidth={2.5} />
+                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">결합상품</p>
               </div>
-              <div className="flex gap-2">
-                {customer.family_members_count > 0 ? (
-                  <p className="text-base font-bold text-green-900">가족결합 {customer.family_members_count}인</p>
-                ) : (
-                  <span className="text-sm text-gray-600">없음</span>
+              {customer.family_members_count > 0 ? (
+                <div className="space-y-1">
+                  <p className="text-base font-bold text-slate-900 leading-tight">가족결합</p>
+                  <p className="text-xs text-slate-500 font-medium">{customer.family_members_count}인</p>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">없음</p>
+              )}
+            </div>
+
+            {/* 단말기 */}
+            <div className="bg-gray-50/50 rounded border border-gray-100 p-2.5 hover:border-gray-200 hover:bg-gray-50 transition-all">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Smartphone className="w-3.5 h-3.5" style={{ color: '#3617CE' }} strokeWidth={2.5} />
+                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">단말기</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-slate-900 leading-tight">iPhone 16 Pro</p>
+                {customer.device_purchase_date && (
+                  <p className="text-xs text-slate-500 font-medium">
+                    {format(new Date(customer.device_purchase_date), 'yyyy.MM.dd')}
+                  </p>
                 )}
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl p-4 border border-purple-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Smartphone className="w-5 h-5 text-purple-600" />
-                <p className="text-sm font-semibold text-purple-900">단말기</p>
+            {/* 현재 요금제 */}
+            <div className="bg-gray-50/50 rounded border border-gray-100 p-2.5 hover:border-gray-200 hover:bg-gray-50 transition-all">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TrendingUp className="w-3.5 h-3.5" style={{ color: '#3617CE' }} strokeWidth={2.5} />
+                <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">요금제</p>
               </div>
-              <p className="text-base font-bold text-purple-900">{customer.device_model_name || '정보 없음'}</p>
-              {customer.device_purchase_date && (
-                <p className="text-xs text-purple-700 mt-1">
-                  구매일: {format(new Date(customer.device_purchase_date), 'yyyy.MM.dd')}
-                </p>
-              )}
-            </div>
-
-            <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-2xl p-4 border border-orange-200/50">
-              <div className="flex items-center gap-2 mb-2">
-                <CreditCard className="w-5 h-5 text-orange-600" />
-                <p className="text-sm font-semibold text-orange-900">현재 요금제</p>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-slate-900 leading-tight">{customer.plan_name || '정보 없음'}</p>
+                {customer.plan_price && (
+                  <p className="text-xs text-slate-500 font-medium">₩{customer.plan_price.toLocaleString()}/월</p>
+                )}
               </div>
-              <p className="text-base font-bold text-orange-900">{customer.plan_name || '정보 없음'}</p>
-              {customer.plan_price && (
-                <p className="text-xs text-orange-700 mt-1">월 {customer.plan_price.toLocaleString()}원</p>
-              )}
             </div>
           </div>
         </div>
 
         {/* 벤토 그리드 레이아웃 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* [구획 가] 이전 상담 내역 */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-[#3617CE]" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* [구획 다] AI 영업 인사이트 - 1사분면 */}
+          <div
+            className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-4 cursor-pointer hover:shadow-md transition-all"
+            style={{ borderRadius: '12px' }}
+            onClick={() => setIsInsightsModalOpen(true)}
+          >
+            <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-[#3617CE]" />
+              AI 영업 인사이트
+            </h2>
+
+            <div className="space-y-2">
+              {/* 종합 잠재고객지수 - 큰 카드 */}
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-3 border-2 border-purple-200/50">
+                <p className="text-sm font-semibold text-purple-900 mb-2 text-center">종합 잠재고객지수</p>
+                <div className="flex items-center justify-center gap-3">
+                  {/* 이모지 표정 */}
+                  <div className="text-4xl">
+                    {insights.overallScore >= 70 ? '😊' : insights.overallScore >= 40 ? '😐' : '😟'}
+                  </div>
+                  {/* 점수 */}
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-end gap-1">
+                      <span className="text-4xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent">
+                        {insights.overallScore}
+                      </span>
+                      <span className="text-sm text-gray-600 mb-1">/ 100점</span>
+                    </div>
+                    <Badge className={`mt-2 ${
+                      insights.overallScore >= 70
+                        ? 'bg-gradient-to-r from-[#3617CE] to-[#5B3FE8]'
+                        : insights.overallScore >= 40
+                        ? 'bg-blue-500'
+                        : 'bg-gray-500'
+                    } text-white`}>
+                      {insights.overallScore >= 70 ? '🌟 우수 잠재고객' : insights.overallScore >= 40 ? '⭐ 보통' : '⚠️ 관심 필요'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* 세부 지표 - 작은 3개 카드 */}
+              <div className="grid grid-cols-3 gap-2">
+                {/* 기기변경 확률 */}
+                <div className="bg-red-50 rounded-lg p-3 border border-red-200/50">
+                  <p className="text-xs font-semibold text-gray-700 mb-1 text-center">기기변경</p>
+                  <div className="text-center">
+                    <span className="text-2xl font-bold text-[#EA002C]">{insights.deviceChangeRate}</span>
+                    <span className="text-xs text-gray-600">%</span>
+                  </div>
+                </div>
+
+                {/* 요금제변경 확률 */}
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200/50">
+                  <p className="text-xs font-semibold text-gray-700 mb-1 text-center">요금제변경</p>
+                  <div className="text-center">
+                    <span className="text-2xl font-bold text-blue-600">{insights.planChangeRate}</span>
+                    <span className="text-xs text-gray-600">%</span>
+                  </div>
+                </div>
+
+                {/* 불만 확률 */}
+                <div className="bg-orange-50 rounded-lg p-3 border border-orange-200/50">
+                  <p className="text-xs font-semibold text-gray-700 mb-1 text-center">불만도</p>
+                  <div className="text-center">
+                    <span className="text-2xl font-bold text-orange-600">{insights.complaintRate}</span>
+                    <span className="text-xs text-gray-600">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-2">클릭하여 상세 분석 보기</p>
+          </div>
+
+          {/* [구획 가] 이전 상담 내역 - 2사분면 */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-4" style={{ borderRadius: '12px' }}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-slate-600" strokeWidth={2.5} />
               이전 상담 내역
             </h2>
 
-            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+            <div className="space-y-2">
               {(() => {
-                // conversation_summaries가 있는 상담만 필터링
-                const conversationsWithSummary = conversations.filter(conv => conv.summary)
+                // conversation_summaries가 있는 상담만 필터링하고 3개로 제한
+                const conversationsWithSummary = conversations.filter(conv => conv.summary).slice(0, 3)
 
                 return conversationsWithSummary.length > 0 ? (
                   conversationsWithSummary.map((conv) => {
                     const isRecent = isRecentConversation(conv.started_at)
+
+                    // 감정에 따른 스타일
+                    const getSentimentConfig = () => {
+                      switch (conv.summary!.sentiment) {
+                        case 'positive':
+                          return {
+                            accentColor: 'border-green-500',
+                            iconColor: 'text-green-600',
+                            iconBg: 'bg-green-50'
+                          }
+                        case 'negative':
+                          return {
+                            accentColor: 'border-red-500',
+                            iconColor: 'text-red-600',
+                            iconBg: 'bg-red-50'
+                          }
+                        default:
+                          return {
+                            accentColor: 'border-slate-500',
+                            iconColor: 'text-slate-600',
+                            iconBg: 'bg-slate-50'
+                          }
+                      }
+                    }
+
+                    const config = getSentimentConfig()
+
                     return (
                       <div
                         key={conv.id}
-                        onClick={() => setSelectedConversation(conv)}
-                        className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 ${
-                          isRecent ? 'border-2 border-[#EA002C]' : 'border border-gray-200'
-                        } transition-all hover:shadow-md cursor-pointer hover:scale-[1.02]`}
+                        onClick={() => {
+                          setSelectedConversation(conv)
+                          setIsConversationModalOpen(true)
+                        }}
+                        className={`bg-white rounded-lg border-l-4 ${config.accentColor} border border-slate-200 p-3 hover:shadow-sm transition-all cursor-pointer`}
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm text-gray-600 font-medium">
-                            {format(new Date(conv.started_at), 'yyyy.MM.dd HH:mm')}
-                          </span>
-                          {isRecent && (
-                            <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
-                          )}
-                          <Badge className={`${getSentimentColor(conv.summary!.sentiment)} text-white text-xs`}>
-                            {getSentimentText(conv.summary!.sentiment)}
-                          </Badge>
+                        <div className="flex items-start gap-2">
+                          <div className={`w-8 h-8 ${config.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <MessageSquare className={`w-4.5 h-4.5 ${config.iconColor}`} strokeWidth={2.5} />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="text-xs text-slate-600 font-medium">
+                                {format(new Date(conv.started_at), 'yyyy.MM.dd HH:mm')}
+                              </span>
+                              <Badge variant="outline" className="text-xs text-slate-600 border-slate-300">
+                                {conv.summary!.category}
+                              </Badge>
+                              <Badge className={`${getSentimentColor(conv.summary!.sentiment)} text-white text-xs`}>
+                                {getSentimentText(conv.summary!.sentiment)}
+                              </Badge>
+                              {isRecent && (
+                                <Badge className="bg-red-100 text-red-700 text-xs border-red-200">
+                                  최근
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm font-bold text-slate-900 leading-relaxed">
+                              {shortSummaries[conv.id] || '요약 생성 중...'}
+                            </p>
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-2 mb-3">
-                          <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
-                            {conv.summary!.category}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
-                          {conv.summary!.summary}
-                        </p>
                       </div>
                     )
                   })
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-slate-500 text-sm">
                     상담 요약이 있는 내역이 없습니다.
                   </div>
                 )
@@ -1263,53 +1428,315 @@ export default function CustomerDetailPage() {
             </div>
           </div>
 
-          {/* [구획 나] 상담 개선 포인트 */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Lightbulb className="w-6 h-6 text-[#FF7A00]" />
-              상담 개선 포인트
+          {/* [구획 나] AI 상담 어시스턴트 - 3사분면 */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-4" style={{ borderRadius: '12px' }}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-slate-600" strokeWidth={2.5} />
+              AI 상담 어시스턴트
             </h2>
 
-            <div className="space-y-4">
-              {consultationPoints.map((point, index) => (
-                <div
-                  key={index}
-                  className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-5 border border-orange-200/50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-[#FF7A00] rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                      {index + 1}
-                    </div>
-                    <p className="text-sm text-gray-800 leading-relaxed pt-1">
-                      {point}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="space-y-2">
+              {consultationPoints.map((insight, index) => {
+                // 타입별 스타일 및 아이콘 설정
+                const getInsightConfig = () => {
+                  if (insight.type === 'dealership') {
+                    return {
+                      accentColor: 'border-blue-500',
+                      icon: LineChart,
+                      iconColor: 'text-blue-600',
+                      iconBg: 'bg-blue-50'
+                    }
+                  } else {
+                    return {
+                      accentColor: 'border-amber-500',
+                      icon: UserSearch,
+                      iconColor: 'text-amber-600',
+                      iconBg: 'bg-amber-50'
+                    }
+                  }
+                }
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <div className="flex items-center gap-2 text-sm text-blue-800">
-                <AlertCircle className="w-4 h-4" />
-                <span className="font-semibold">AI가 과거 상담 데이터를 분석하여 생성한 추천입니다.</span>
-              </div>
+                const config = getInsightConfig()
+                const IconComponent = config.icon
+
+                // 핵심 요약과 상세 분리
+                const [summary, ...details] = insight.content.split('.')
+                const detailText = details.join('.').trim()
+
+                return (
+                  <div
+                    key={index}
+                    className={`bg-white rounded-lg border-l-4 ${config.accentColor} border border-slate-200 p-3 hover:shadow-sm transition-all`}
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className={`w-9 h-9 ${config.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                          <IconComponent className={`w-4.5 h-4.5 ${config.iconColor}`} strokeWidth={2.5} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="text-sm font-semibold text-slate-900">{insight.title}</h3>
+                            <Badge variant="outline" className="text-xs text-slate-600 border-slate-300">
+                              {insight.tag}
+                            </Badge>
+                            {insight.priority === 'high' && (
+                              <Badge className="bg-red-100 text-red-700 text-xs border-red-200">
+                                긴급
+                              </Badge>
+                            )}
+                          </div>
+                          {/* 핵심 요약 */}
+                          <p className="text-sm font-bold text-slate-900 mb-1">
+                            {summary}.
+                          </p>
+                          {/* 상세 내용 */}
+                          {detailText && (
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                              {detailText}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                )
+              })}
             </div>
           </div>
 
-          {/* [구획 다] AI 영업 인사이트 */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-[#3617CE]" />
-              AI 영업 인사이트
-            </h2>
+          {/* [구획 라] 예상 필요 서비스 - 4사분면 */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-4" style={{ borderRadius: '12px' }}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Target className="w-5 h-5 text-slate-600" strokeWidth={2.5} />
+                예상 필요 서비스
+              </h2>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  refreshServices()
+                }}
+                disabled={isRefreshingServices}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  isRefreshingServices
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'bg-slate-600 text-white hover:bg-slate-700 hover:shadow-md'
+                }`}
+              >
+                {isRefreshingServices ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span>분석 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>새로고침</span>
+                  </>
+                )}
+              </button>
+            </div>
 
-            {/* 세미 서클 게이지 - 종합 잠재고객지수 */}
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-purple-200/50">
+            <div className="space-y-2">
+              {predictedServices.slice(0, 3).map((service, index) => {
+                // 서비스 타입별 스타일 설정
+                const getServiceConfig = () => {
+                  if (service.type === 'device') {
+                    return {
+                      accentColor: 'border-red-500',
+                      iconColor: 'text-red-600',
+                      iconBg: 'bg-red-50',
+                      icon: Smartphone
+                    }
+                  } else if (service.type === 'plan') {
+                    return {
+                      accentColor: 'border-blue-500',
+                      iconColor: 'text-blue-600',
+                      iconBg: 'bg-blue-50',
+                      icon: Wifi
+                    }
+                  } else {
+                    return {
+                      accentColor: 'border-slate-500',
+                      iconColor: 'text-slate-600',
+                      iconBg: 'bg-slate-50',
+                      icon: CheckCircle
+                    }
+                  }
+                }
+
+                const config = getServiceConfig()
+                const IconComponent = config.icon
+
+                return (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      setSelectedService(service)
+                      setIsServiceModalOpen(true)
+                    }}
+                    className={`bg-white rounded-lg border-l-4 ${config.accentColor} border border-slate-200 p-3 hover:shadow-sm transition-all cursor-pointer`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 ${config.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                        <IconComponent className={`w-4.5 h-4.5 ${config.iconColor}`} strokeWidth={2.5} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-sm font-semibold text-slate-900">{service.title}</h3>
+                          {service.confidence && (
+                            <Badge variant="outline" className="text-xs text-slate-600 border-slate-300">
+                              {service.confidence}%
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* 서비스 내용 미리보기 */}
+                        <div className="mt-2">
+                          {service.type === 'device' && service.description && (
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                              {service.description}
+                            </p>
+                          )}
+
+                          {service.type === 'plan' && service.recommendations && (
+                            <div className="space-y-1.5">
+                              {service.recommendations.slice(0, 3).map((rec: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs ${
+                                      rec.rank === 1 ? 'border-red-300 text-red-700 bg-red-50' :
+                                      rec.rank === 2 ? 'border-blue-300 text-blue-700 bg-blue-50' :
+                                      'border-green-300 text-green-700 bg-green-50'
+                                    }`}
+                                  >
+                                    {rec.rank}위
+                                  </Badge>
+                                  <span className="text-sm text-slate-700">{rec.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {service.type === 'maintenance' && service.description && (
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                              {service.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 상담 내역 상세 모달 */}
+      <Dialog open={isConversationModalOpen} onOpenChange={setIsConversationModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-[#3617CE]" />
+              상담 내역 상세
+            </DialogTitle>
+          </DialogHeader>
+          {selectedConversation && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600 font-medium">
+                  {format(new Date(selectedConversation.started_at), 'yyyy.MM.dd HH:mm')}
+                </span>
+                <div className="flex items-center gap-2">
+                  {isRecentConversation(selectedConversation.started_at) && (
+                    <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
+                  )}
+                  <Badge className={`${getSentimentColor(selectedConversation.summary!.sentiment)} text-white text-xs`}>
+                    {getSentimentText(selectedConversation.summary!.sentiment)}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <Badge variant="outline" className="text-[#3617CE] border-[#3617CE] mb-3">
+                  {selectedConversation.summary!.category}
+                </Badge>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">상담 요약</h3>
+                  <p className="text-sm text-gray-800 leading-relaxed">
+                    {selectedConversation.summary!.summary}
+                  </p>
+                </div>
+              </div>
+
+              {selectedConversation.summary!.keywords && selectedConversation.summary!.keywords.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">키워드</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedConversation.summary!.keywords.map((keyword, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedConversation.messages && selectedConversation.messages.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">대화 내용</h3>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {selectedConversation.messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`p-3 rounded-lg ${
+                          msg.role === 'user'
+                            ? 'bg-blue-50 border border-blue-200'
+                            : 'bg-gray-50 border border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="text-xs">
+                            {msg.role === 'user' ? '고객' : 'AI'}
+                          </Badge>
+                          <span className="text-xs text-gray-500">
+                            {format(new Date(msg.created_at), 'HH:mm')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{msg.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AI 영업 인사이트 상세 모달 */}
+      <Dialog open={isInsightsModalOpen} onOpenChange={setIsInsightsModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-[#3617CE]" />
+              AI 영업 인사이트 상세 분석
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* 종합 잠재고객지수 */}
+            <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl p-6 border border-purple-200/50">
               <p className="text-center text-sm font-semibold text-purple-900 mb-4">종합 잠재고객지수</p>
 
               <div className="relative w-48 h-24 mx-auto mb-4">
                 <svg className="w-48 h-24" viewBox="0 0 200 100">
-                  {/* 배경 반원 */}
                   <path
                     d="M 20 100 A 80 80 0 0 1 180 100"
                     fill="none"
@@ -1317,7 +1744,6 @@ export default function CustomerDetailPage() {
                     strokeWidth="20"
                     strokeLinecap="round"
                   />
-                  {/* 진행 반원 */}
                   <path
                     d="M 20 100 A 80 80 0 0 1 180 100"
                     fill="none"
@@ -1350,157 +1776,191 @@ export default function CustomerDetailPage() {
                 </Badge>
               </div>
 
-              {/* 종합 점수 산출 근거 토글 */}
-              <div className="text-center">
-                <button
-                  onClick={() => toggleReasoning('overall')}
-                  className="inline-flex items-center gap-1 text-xs text-purple-700 hover:text-purple-900 transition-colors"
-                >
-                  {toggleStates.overall ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  <span>산출 근거 {toggleStates.overall ? '닫기' : '보기'}</span>
-                </button>
-                {toggleStates.overall && (
-                  <div className="mt-3 p-3 bg-white rounded-lg border border-purple-200 text-left">
-                    <p className="text-xs text-gray-700 leading-relaxed">{insights.overallReasoning}</p>
-                  </div>
-                )}
+              <div className="mt-3 p-3 bg-white rounded-lg border border-purple-200 text-left">
+                <p className="text-xs font-semibold text-gray-700 mb-1">산출 근거</p>
+                <p className="text-xs text-gray-700 leading-relaxed">{insights.overallReasoning}</p>
               </div>
             </div>
 
             {/* 세분화 지표 */}
             <div className="space-y-4">
               {/* 기기변경 확률 */}
-              <div className="bg-red-50 rounded-xl p-4">
+              <div className="bg-red-50 rounded-xl p-4 border border-red-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-700">기기변경 확률</span>
-                  <span className="text-sm font-bold text-[#EA002C]">{insights.deviceChangeRate}%</span>
+                  <span className="text-lg font-bold text-[#EA002C]">{insights.deviceChangeRate}%</span>
                 </div>
-                <Progress value={insights.deviceChangeRate} className="h-2 mb-2" style={{ '--progress-background': '#EA002C' } as any} />
-                <button
-                  onClick={() => toggleReasoning('device')}
-                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  {toggleStates.device ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  <span>산출 근거 {toggleStates.device ? '닫기' : '보기'}</span>
-                </button>
-                {toggleStates.device && (
-                  <div className="mt-2 p-3 bg-white rounded-lg border border-red-200">
-                    <p className="text-xs text-gray-700 leading-relaxed">{insights.deviceChangeReasoning}</p>
-                  </div>
-                )}
+                <Progress value={insights.deviceChangeRate} className="h-2 mb-3" style={{ '--progress-background': '#EA002C' } as any} />
+                <div className="p-3 bg-white rounded-lg border border-red-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-1">산출 근거</p>
+                  <p className="text-xs text-gray-700 leading-relaxed">{insights.deviceChangeReasoning}</p>
+                </div>
               </div>
 
               {/* 요금제변경 확률 */}
-              <div className="bg-blue-50 rounded-xl p-4">
+              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-700">요금제변경 확률</span>
-                  <span className="text-sm font-bold text-gray-900">{insights.planChangeRate}%</span>
+                  <span className="text-lg font-bold text-blue-600">{insights.planChangeRate}%</span>
                 </div>
-                <Progress value={insights.planChangeRate} className="h-2 mb-2" />
-                <button
-                  onClick={() => toggleReasoning('plan')}
-                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  {toggleStates.plan ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  <span>산출 근거 {toggleStates.plan ? '닫기' : '보기'}</span>
-                </button>
-                {toggleStates.plan && (
-                  <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
-                    <p className="text-xs text-gray-700 leading-relaxed">{insights.planChangeReasoning}</p>
-                  </div>
-                )}
+                <Progress value={insights.planChangeRate} className="h-2 mb-3" />
+                <div className="p-3 bg-white rounded-lg border border-blue-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-1">산출 근거</p>
+                  <p className="text-xs text-gray-700 leading-relaxed">{insights.planChangeReasoning}</p>
+                </div>
               </div>
 
               {/* 불만 확률 */}
-              <div className="bg-orange-50 rounded-xl p-4">
+              <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-700">불만 확률</span>
-                  <span className="text-sm font-bold text-gray-900">{insights.complaintRate}%</span>
+                  <span className="text-lg font-bold text-orange-600">{insights.complaintRate}%</span>
                 </div>
-                <Progress value={insights.complaintRate} className="h-2 mb-2" />
-                <button
-                  onClick={() => toggleReasoning('complaint')}
-                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  {toggleStates.complaint ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                  <span>산출 근거 {toggleStates.complaint ? '닫기' : '보기'}</span>
-                </button>
-                {toggleStates.complaint && (
-                  <div className="mt-2 p-3 bg-white rounded-lg border border-orange-200">
-                    <p className="text-xs text-gray-700 leading-relaxed">{insights.complaintReasoning}</p>
-                  </div>
-                )}
+                <Progress value={insights.complaintRate} className="h-2 mb-3" />
+                <div className="p-3 bg-white rounded-lg border border-orange-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-1">산출 근거</p>
+                  <p className="text-xs text-gray-700 leading-relaxed">{insights.complaintReasoning}</p>
+                </div>
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
 
-          {/* [구획 라] 예상 필요 서비스 */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200/50 p-8" style={{ borderRadius: '12px' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Target className="w-6 h-6 text-[#EA002C]" />
-              예상 필요 서비스
-            </h2>
-
+      {/* 예상 필요 서비스 상세 모달 */}
+      <Dialog open={isServiceModalOpen} onOpenChange={setIsServiceModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-[#EA002C]" />
+              {selectedService?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedService && (
             <div className="space-y-4">
-              {predictedServices.map((service, index) => (
-                <div
-                  key={index}
-                  className={`bg-gradient-to-br ${
-                    service.priority === 'high'
-                      ? 'from-red-50 to-pink-50 border-red-200'
-                      : 'from-blue-50 to-cyan-50 border-blue-200'
-                  } rounded-2xl p-6 border`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-lg font-bold text-gray-900">{service.title}</h3>
-                    <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
-                      <CheckCircle className="w-4 h-4" />
-                      {service.confidence}%
+              {/* 기기 변경 서비스 */}
+              {selectedService.type === 'device' && (
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-lg p-4 border border-red-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-gray-900">신뢰도</h3>
+                      <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
+                        <CheckCircle className="w-4 h-4" />
+                        {selectedService.confidence}%
+                      </div>
                     </div>
+                    <p className="text-sm text-gray-700 leading-relaxed">
+                      {selectedService.description}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed mb-3">
-                    {service.description}
-                  </p>
+                  <Badge className="bg-[#EA002C] text-white">우선 제안</Badge>
+                </div>
+              )}
 
-                  {/* 요금제 선택지 표시 */}
-                  {service.type === 'plan' && service.options && service.options.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">추천 요금제</p>
-                      {service.options.map((option: any, optIdx: number) => (
-                        <div
-                          key={optIdx}
-                          className="bg-white rounded-xl p-4 border border-gray-200 hover:border-[#3617CE] hover:shadow-md transition-all cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="text-sm font-bold text-gray-900">{option.name}</h4>
-                              <p className="text-xs text-gray-600 mt-1">{option.description}</p>
-                            </div>
-                            <div className="text-xs text-[#3617CE] font-semibold">
-                              제안하기 →
-                            </div>
+              {/* 요금제 추천 서비스 */}
+              {selectedService.type === 'plan' && selectedService.recommendations && (
+                <div className="space-y-4">
+                  {selectedService.recommendations.map((rec: any, recIdx: number) => (
+                    <div
+                      key={recIdx}
+                      className={`bg-gradient-to-br rounded-xl p-6 border-2 ${
+                        rec.rank === 1
+                          ? 'from-red-50 via-orange-50 to-yellow-50 border-red-300'
+                          : rec.rank === 2
+                          ? 'from-blue-50 via-indigo-50 to-purple-50 border-blue-300'
+                          : 'from-green-50 via-teal-50 to-cyan-50 border-green-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                            rec.rank === 1 ? 'bg-gradient-to-br from-red-500 to-orange-500' :
+                            rec.rank === 2 ? 'bg-gradient-to-br from-blue-500 to-indigo-500' :
+                            'bg-gradient-to-br from-green-500 to-teal-500'
+                          }`}>
+                            {rec.rank}
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-900">{rec.name}</h3>
+                            <p className="text-xs text-gray-600 mt-0.5">추천 순위 {rec.rank}위</p>
                           </div>
                         </div>
-                      ))}
+                        <div className="flex flex-col items-end">
+                          <div className="text-2xl font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent">
+                            {rec.score}%
+                          </div>
+                          <span className="text-xs text-gray-600">매칭 점수</span>
+                        </div>
+                      </div>
+
+                      <div className="mb-4 p-4 bg-white/70 rounded-xl border border-gray-200">
+                        <p className="text-xs font-semibold text-gray-600 mb-2">🎯 고객 니즈</p>
+                        <p className="text-sm text-gray-800 leading-relaxed">
+                          {rec.customerNeed}
+                        </p>
+                      </div>
+
+                      <div className="mb-4 p-4 bg-white/70 rounded-xl border border-blue-200">
+                        <p className="text-xs font-semibold text-blue-700 mb-2">💡 최적 제안</p>
+                        <p className="text-sm text-gray-800 leading-relaxed font-medium">
+                          "{rec.bestOffer}"
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                        <p className="text-xs font-semibold text-green-700 mb-3">💰 대리점 수익</p>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-700">판매 장려금 (리베이트)</span>
+                            <span className="text-lg font-bold text-green-700">
+                              {rec.revenue.commission.toLocaleString()}원
+                              {rec.revenue.increase && (
+                                <span className="text-xs text-red-600 ml-2">
+                                  (전주 대비 +{rec.revenue.increase.toLocaleString()}원)
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          {rec.revenue.additionalPolicy && (
+                            <div className="pt-2 border-t border-green-200">
+                              <p className="text-xs text-gray-600">
+                                <span className="font-semibold">부가 정책:</span> {rec.revenue.additionalPolicy}
+                              </p>
+                            </div>
+                          )}
+                          {rec.revenue.performance && (
+                            <div className="pt-2 border-t border-green-200">
+                              <p className="text-xs text-gray-600">
+                                <span className="font-semibold">성과 인센티브:</span> {rec.revenue.performance}
+                              </p>
+                            </div>
+                          )}
+                          {rec.revenue.longTermBenefit && (
+                            <div className="pt-2 border-t border-green-200">
+                              <p className="text-xs text-gray-600">
+                                <span className="font-semibold">장기 혜택:</span> {rec.revenue.longTermBenefit}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  )}
-
-                  {service.priority === 'high' && (
-                    <Badge className="bg-[#EA002C] text-white mt-3">우선 제안</Badge>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
 
-            <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
-              <div className="flex items-center gap-2 text-sm text-green-800">
-                <CheckCircle className="w-4 h-4" />
-                <span className="font-semibold">AI가 고객의 잠재적 니즈를 분석하여 제안합니다.</span>
-              </div>
+              {/* 유지 관리 서비스 */}
+              {selectedService.type === 'maintenance' && (
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+                  <p className="text-sm text-gray-700 leading-relaxed">
+                    {selectedService.description}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
