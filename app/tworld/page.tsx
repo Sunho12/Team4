@@ -1330,18 +1330,20 @@ export default function TworldPage() {
                 <div className="modal-body">
                   <div style={{ marginBottom: '24px', padding: '16px', background: '#f0f0ff', borderRadius: '12px', border: '1px solid var(--t-blue)' }}>
                     <div style={{ fontSize: '14px', color: 'var(--t-blue)', marginBottom: '4px' }}>현재 요금제</div>
-                    <div style={{ fontSize: '18px', fontWeight: '700' }}>5GX 프라임 (데이터 무제한)</div>
+                    <div style={{ fontSize: '18px', fontWeight: '700' }}>다이렉트 5G 69 (넷플릭스)</div>
                   </div>
 
                   <div className="usage-bar-container">
                     <div className="usage-label">
                       <span><strong>데이터</strong></span>
-                      <span style={{ color: 'var(--t-blue)', fontWeight: '600' }}>이번 달 사용량: 85.3GB</span>
+                      <span style={{ color: 'var(--t-blue)', fontWeight: '600' }}>127GB / 200GB</span>
                     </div>
-                    <div style={{ padding: '12px', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--t-blue)' }}>무제한 ∞</div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-gray)', marginTop: '4px' }}>마음껏 사용하세요</div>
+                    <div className="usage-bar">
+                      <div className="usage-fill green" style={{ width: '63.5%' }}>
+                        63.5%
+                      </div>
                     </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-gray)', marginTop: '8px' }}>남은 데이터: 73GB</div>
                   </div>
 
                   <div className="usage-bar-container">
@@ -1364,9 +1366,9 @@ export default function TworldPage() {
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '24px', padding: '16px', background: 'linear-gradient(135deg, #10b981, #34d399)', borderRadius: '12px', color: 'white', textAlign: 'center' }}>
-                    <div style={{ fontSize: '14px', opacity: '0.9' }}>무제한 요금제로</div>
-                    <div style={{ fontSize: '20px', fontWeight: '700', marginTop: '4px' }}>제한 없이 자유롭게!</div>
+                  <div style={{ marginTop: '24px', padding: '16px', background: 'linear-gradient(135deg, #3617CE, #5b3fd1)', borderRadius: '12px', color: 'white', textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', opacity: '0.9' }}>넷플릭스 포함</div>
+                    <div style={{ fontSize: '20px', fontWeight: '700', marginTop: '4px' }}>합리적인 가격에 프리미엄 콘텐츠!</div>
                   </div>
                 </div>
               </>
@@ -1381,64 +1383,32 @@ export default function TworldPage() {
                 <div className="modal-body">
                   <div style={{ marginBottom: '20px', padding: '14px', background: '#f8f9fa', borderRadius: '10px' }}>
                     <div style={{ fontSize: '13px', color: 'var(--text-gray)', marginBottom: '4px' }}>현재 요금제</div>
-                    <div style={{ fontSize: '17px', fontWeight: '700' }}>5GX 프라임</div>
-                    <div style={{ fontSize: '15px', color: 'var(--t-blue)', fontWeight: '600', marginTop: '4px' }}>월 89,000원</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-gray)', marginTop: '6px' }}>데이터 무제한 • VIP 멤버십</div>
+                    <div style={{ fontSize: '17px', fontWeight: '700' }}>다이렉트 5G 69 (넷플릭스)</div>
+                    <div style={{ fontSize: '15px', color: 'var(--t-blue)', fontWeight: '600', marginTop: '4px' }}>월 69,000원</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-gray)', marginTop: '6px' }}>데이터 200GB • 넷플릭스 스탠다드 포함</div>
                   </div>
 
                   {/* 프리미엄 등급 */}
                   <div className="plan-section">
-                    <div className="plan-section-title">👑 프리미엄 등급 (무제한 + VIP)</div>
+                    <div className="plan-section-title">👑 프리미엄 등급</div>
                     <div className="plan-grid">
                       <div className="plan-card">
-                        <span className="plan-badge" style={{ background: '#FFD700' }}>최상위</span>
-                        <div className="plan-name">5GX 플래티넘</div>
-                        <div className="plan-price">125,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
-                        <div className="plan-features">
-                          <div className="plan-feature">✓ 데이터 무제한</div>
-                          <div className="plan-feature">✓ 우주패스 all/life 무료</div>
-                          <div className="plan-feature">✓ 스마트기기 2회선 무료</div>
-                          <div className="plan-feature">✓ VIP 멤버십</div>
-                        </div>
-                      </div>
-
-                      <div className="plan-card">
-                        <div className="plan-name">5GX 프리미엄</div>
+                        <div className="plan-name">5GX 프리미엄 (넷플릭스)</div>
                         <div className="plan-price">109,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
                         <div className="plan-features">
                           <div className="plan-feature">✓ 데이터 무제한</div>
-                          <div className="plan-feature">✓ 우주패스 혜택</div>
-                          <div className="plan-feature">✓ 스마트기기 1회선 무료</div>
-                          <div className="plan-feature">✓ VIP 멤버십</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 표준/대용량 등급 */}
-                  <div className="plan-section">
-                    <div className="plan-section-title">⭐ 표준 & 대용량 등급</div>
-                    <div className="plan-grid">
-                      <div className="plan-card recommended">
-                        <span className="plan-badge">추천</span>
-                        <div className="plan-name">5GX 프라임플러스</div>
-                        <div className="plan-price">99,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
-                        <div className="plan-features">
-                          <div className="plan-feature">✓ 데이터 무제한</div>
-                          <div className="plan-feature">✓ 우주패스/wavve/FLO 중 택1</div>
-                          <div className="plan-feature">✓ 스마트기기 2회선 50% 할인</div>
-                          <div className="plan-feature">✓ VIP 멤버십</div>
+                          <div className="plan-feature">✓ 넷플릭스 스탠다드 포함</div>
+                          <div className="plan-feature">✓ 5G 프리미엄 네트워크</div>
                         </div>
                       </div>
 
                       <div className="plan-card">
-                        <div className="plan-name">5G 함께플러스</div>
-                        <div className="plan-price">79,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-name">0 청년 109 (티빙)</div>
+                        <div className="plan-price">109,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
                         <div className="plan-features">
-                          <div className="plan-feature">✓ 데이터 250GB</div>
-                          <div className="plan-feature">✓ 공유 데이터 40GB</div>
-                          <div className="plan-feature">✓ 속도제어 5Mbps</div>
-                          <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 10,000원 절약</div>
+                          <div className="plan-feature">✓ 만 34세 이하 전용</div>
+                          <div className="plan-feature">✓ 티빙 스탠다드 포함</div>
+                          <div className="plan-feature">✓ 데이터 무제한</div>
                         </div>
                       </div>
                     </div>
@@ -1446,25 +1416,26 @@ export default function TworldPage() {
 
                   {/* 중간 등급 */}
                   <div className="plan-section">
-                    <div className="plan-section-title">📱 중간 등급</div>
+                    <div className="plan-section-title">⭐ 중간 등급</div>
                     <div className="plan-grid">
-                      <div className="plan-card">
-                        <div className="plan-name">5G 베이직플러스</div>
-                        <div className="plan-price">59,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                      <div className="plan-card recommended">
+                        <span className="plan-badge">추천</span>
+                        <div className="plan-name">5GX 프라임플러스 (T우주)</div>
+                        <div className="plan-price">99,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
                         <div className="plan-features">
-                          <div className="plan-feature">✓ 데이터 15GB</div>
-                          <div className="plan-feature">✓ 속도제어 1Mbps</div>
-                          <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 30,000원 절약</div>
+                          <div className="plan-feature">✓ 데이터 무제한</div>
+                          <div className="plan-feature">✓ T우주 패스 포함</div>
+                          <div className="plan-feature">✓ 5G 프리미엄 네트워크</div>
                         </div>
                       </div>
 
                       <div className="plan-card">
-                        <div className="plan-name">5G 베이직</div>
-                        <div className="plan-price">49,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-name">다이렉트 5G 69 (넷플릭스)</div>
+                        <div className="plan-price">69,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
                         <div className="plan-features">
-                          <div className="plan-feature">✓ 데이터 11GB</div>
-                          <div className="plan-feature">✓ 속도제어 1Mbps</div>
-                          <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 40,000원 절약</div>
+                          <div className="plan-feature">✓ 넷플릭스 스탠다드 포함</div>
+                          <div className="plan-feature">✓ 데이터 200GB</div>
+                          <div className="plan-feature">✓ 속도제어 5Mbps</div>
                         </div>
                       </div>
                     </div>
@@ -1473,14 +1444,25 @@ export default function TworldPage() {
                   {/* 실속형 */}
                   <div className="plan-section">
                     <div className="plan-section-title">💡 실속형</div>
-                    <div className="plan-card">
-                      <div className="plan-name">5G 컴팩트</div>
-                      <div className="plan-price">39,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
-                      <div className="plan-features">
-                        <div className="plan-feature">✓ 데이터 6GB</div>
-                        <div className="plan-feature">✓ 속도제어 400kbps</div>
-                        <div className="plan-feature">✓ 2024년 출시 실속형</div>
-                        <div className="plan-feature" style={{ color: '#10b981' }}>💰 월 50,000원 절약</div>
+                    <div className="plan-grid">
+                      <div className="plan-card">
+                        <div className="plan-name">다이렉트 5G 55</div>
+                        <div className="plan-price">55,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 데이터 100GB</div>
+                          <div className="plan-feature">✓ 속도제어 3Mbps</div>
+                          <div className="plan-feature">✓ 합리적인 가격</div>
+                        </div>
+                      </div>
+
+                      <div className="plan-card">
+                        <div className="plan-name">0 청년 49</div>
+                        <div className="plan-price">49,000원<span style={{ fontSize: '14px', fontWeight: '400' }}>/월</span></div>
+                        <div className="plan-features">
+                          <div className="plan-feature">✓ 만 34세 이하 전용</div>
+                          <div className="plan-feature">✓ 데이터 11GB</div>
+                          <div className="plan-feature">✓ 속도제어 1Mbps</div>
+                        </div>
                       </div>
                     </div>
                   </div>
