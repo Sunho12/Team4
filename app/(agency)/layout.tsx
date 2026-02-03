@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 
 export default function AgencyLayout({
@@ -12,9 +13,15 @@ export default function AgencyLayout({
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/search" className="cursor-pointer">
-              <div>
-                <h1 className="text-white text-2xl font-bold">T-Bridge</h1>
-                <p className="text-white/70 text-sm mt-1">AI Dashboard</p>
+              <div className="flex flex-col items-start gap-1">
+                <Image
+                  src="/t-bridge-logo-transparent.png"
+                  alt="T-Bridge"
+                  width={150}
+                  height={50}
+                  priority
+                />
+                <p className="text-white/70 text-sm">스마트 AI 대시보드</p>
               </div>
             </Link>
             <Link href="/">

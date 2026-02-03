@@ -38,7 +38,9 @@ export default function TworldPage() {
       if (response.ok) {
         const data = await response.json()
         setIsLoggedIn(true)
-        setUserName(data.user.name)
+        // 고객 이름 우선순위: full_name > customer_name > name
+        const displayName = data.user.full_name || data.user.customer_name || data.user.name || '고객'
+        setUserName(displayName)
       }
     } catch (error) {
       // 로그인하지 않은 상태

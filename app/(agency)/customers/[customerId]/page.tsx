@@ -413,9 +413,10 @@ export default function CustomerDetailPage() {
   if (isLoading) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center"
+        className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8"
         style={{
-          backgroundColor: 'rgba(248, 248, 255, 0.95)'
+          backgroundColor: 'rgba(248, 248, 255, 0.95)',
+          fontFamily: "'SK Mobius', sans-serif"
         }}
       >
         <Image
@@ -425,6 +426,21 @@ export default function CustomerDetailPage() {
           height={350}
           unoptimized
         />
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-[#3617CE]/10 to-[#5B3FE8]/10 rounded-2xl border-2 border-[#3617CE]/20">
+            <div className="flex gap-1">
+              <div className="w-2 h-2 bg-[#3617CE] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-[#3617CE] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-[#3617CE] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+            <p className="text-lg font-bold bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] bg-clip-text text-transparent">
+              T-Bridge가 실시간으로 데이터를 연결하고 있습니다
+            </p>
+          </div>
+          <p className="text-sm text-gray-500 animate-pulse">
+            고객 정보를 분석하여 최적의 인사이트를 준비하고 있습니다
+          </p>
+        </div>
       </div>
     )
   }
