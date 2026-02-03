@@ -83,6 +83,12 @@ export async function searchSKTStores(location: string): Promise<StoreInfo[]> {
 
     console.log('✅ Total unique stores found:', uniqueStores.length)
 
+    // 결과가 없으면 mock 데이터 반환
+    if (uniqueStores.length === 0) {
+      console.log('⚠️ No results found, using mock data')
+      return getMockStores(location)
+    }
+
     // 상위 5개만 반환
     return uniqueStores.slice(0, 5)
   } catch (error) {
