@@ -105,22 +105,45 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     throw new Error(`Failed to search customers: ${error.message}`)
   }
 
-  // profiles 결과를 CustomerSearchResult 형식으로 변환
-  const results: CustomerSearchResult[] = (profileResults || []).map(profile => ({
-    id: profile.id,
-    customer_name: profile.full_name,
-    customer_phone: profile.phone_number,
-    customer_birth: profile.birthdate,
-    plan_name: null,
-    plan_price: null,
-    bundle_type: null,
-    device_model: null,
-    device_remaining_months: null,
-    created_at: profile.created_at,
-    source: 'profile' as const,
-    user_id: profile.id,
-    conversations: []
-  }))
+  // profiles 결과를 CustomerSearchResult 형식으로 변환 (추가 정보 포함)
+  const results: CustomerSearchResult[] = await Promise.all(
+    (profileResults || []).map(async (profile) => {
+      const userId = profile.id
+
+      // 1. 가족결합 정보
+      const { data: familyMembers } = await supabase
+        .from('family_members')
+        .select('id')
+        .eq('user_id', userId)
+      const familyMembersCount = familyMembers?.length || 0
+
+      // 2. 요금제 정보
+      const { data: planData } = await supabase
+        .from('purchase_history')
+        .select('product_name, price')
+        .eq('user_id', userId)
+        .eq('purchase_type', 'plan_change')
+        .order('purchase_date', { ascending: false })
+        .limit(1)
+        .single()
+
+      return {
+        id: profile.id,
+        customer_name: profile.full_name,
+        customer_phone: profile.phone_number,
+        customer_birth: profile.birthdate,
+        plan_name: planData?.product_name || null,
+        plan_price: planData?.price || null,
+        bundle_type: familyMembersCount > 0 ? `가족결합 ${familyMembersCount}인` : null,
+        device_model: null,
+        device_remaining_months: null,
+        created_at: profile.created_at,
+        source: 'profile' as const,
+        user_id: profile.id,
+        conversations: []
+      }
+    })
+  )
 
   console.log(`✅ Found ${results.length} customers from profiles`)
 
@@ -150,21 +173,44 @@ export async function getRecentCustomers(limit: number = 5): Promise<CustomerSea
       throw new Error(`Failed to fetch recent customers: ${error.message}`)
     }
 
-    const results: CustomerSearchResult[] = (recentProfiles || []).map(profile => ({
-      id: profile.id,
-      customer_name: profile.full_name,
-      customer_phone: profile.phone_number,
-      customer_birth: profile.birthdate,
-      plan_name: null,
-      plan_price: null,
-      bundle_type: null,
-      device_model: null,
-      device_remaining_months: null,
-      created_at: profile.created_at,
-      source: 'profile' as const,
-      user_id: profile.id,
-      conversations: []
-    }))
+    const results: CustomerSearchResult[] = await Promise.all(
+      (recentProfiles || []).map(async (profile) => {
+        const userId = profile.id
+
+        // 1. 가족결합 정보
+        const { data: familyMembers } = await supabase
+          .from('family_members')
+          .select('id')
+          .eq('user_id', userId)
+        const familyMembersCount = familyMembers?.length || 0
+
+        // 2. 요금제 정보
+        const { data: planData } = await supabase
+          .from('purchase_history')
+          .select('product_name, price')
+          .eq('user_id', userId)
+          .eq('purchase_type', 'plan_change')
+          .order('purchase_date', { ascending: false })
+          .limit(1)
+          .single()
+
+        return {
+          id: profile.id,
+          customer_name: profile.full_name,
+          customer_phone: profile.phone_number,
+          customer_birth: profile.birthdate,
+          plan_name: planData?.product_name || null,
+          plan_price: planData?.price || null,
+          bundle_type: familyMembersCount > 0 ? `가족결합 ${familyMembersCount}인` : null,
+          device_model: null,
+          device_remaining_months: null,
+          created_at: profile.created_at,
+          source: 'profile' as const,
+          user_id: profile.id,
+          conversations: []
+        }
+      })
+    )
 
     console.log(`✅ Found ${results.length} recent customers`)
     return results
@@ -308,10 +354,65 @@ export async function getCustomerDetail(customerId: string) {
     throw new Error('No customer session found for this user')
   }
 
-  // Add profile data to session data
+  // Get additional customer data if we have userId
+  let familyMembersCount = 0
+  let deviceInfo = null
+  let planInfo = null
+
+  if (userId) {
+    // 1. 가족결합 정보 - family_members에서 이 유저를 참조하는 행 개수
+    const { data: familyMembers, error: familyError } = await supabase
+      .from('family_members')
+      .select('id')
+      .eq('user_id', userId)
+
+    if (familyError) {
+      console.error('Error fetching family members:', familyError)
+    } else {
+      familyMembersCount = familyMembers?.length || 0
+    }
+
+    // 2. 단말기 정보 - customer_devices에서 가장 최근 기기
+    const { data: deviceData, error: deviceError } = await supabase
+      .from('customer_devices')
+      .select('model_name, purchase_date')
+      .eq('user_id', userId)
+      .order('purchase_date', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (deviceError) {
+      console.error('Error fetching device info:', deviceError)
+    } else {
+      deviceInfo = deviceData
+    }
+
+    // 3. 요금제 정보 - purchase_history에서 가장 최근 plan_change
+    const { data: planData, error: planError } = await supabase
+      .from('purchase_history')
+      .select('product_name, price')
+      .eq('user_id', userId)
+      .eq('purchase_type', 'plan_change')
+      .order('purchase_date', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (planError) {
+      console.error('Error fetching plan info:', planError)
+    } else {
+      planInfo = planData
+    }
+  }
+
+  // Add all customer data to session
   const sessionWithProfile = {
     ...session,
     birthdate: profile?.birthdate || null,
+    family_members_count: familyMembersCount,
+    device_model_name: deviceInfo?.model_name || null,
+    device_purchase_date: deviceInfo?.purchase_date || null,
+    plan_name: planInfo?.product_name || null,
+    plan_price: planInfo?.price || null,
   }
 
   // Get predictions for all sessions of this customer

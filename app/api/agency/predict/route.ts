@@ -12,13 +12,15 @@ export async function POST(request: Request) {
       )
     }
 
-    const predictions = await analyzePurchaseIntent(sessionId)
+    console.log('[Predict API] Analyzing session:', sessionId)
 
-    return NextResponse.json({
-      predictions,
-    })
+    const analysisResult = await analyzePurchaseIntent(sessionId)
+
+    console.log('[Predict API] Analysis complete:', analysisResult)
+
+    return NextResponse.json(analysisResult)
   } catch (error) {
-    console.error('Error generating predictions:', error)
+    console.error('[Predict API] Error:', error)
     return NextResponse.json(
       { error: 'Failed to generate predictions' },
       { status: 500 }

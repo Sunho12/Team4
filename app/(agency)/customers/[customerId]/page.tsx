@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { format, differenceInDays } from 'date-fns'
-import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag } from 'lucide-react'
+import { User, Phone, Calendar, Smartphone, Wifi, CreditCard, ArrowLeft, TrendingUp, MessageSquare, Target, Lightbulb, AlertCircle, CheckCircle, X, Tag, ChevronDown, ChevronUp } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface Message {
   id: string
@@ -40,17 +41,35 @@ export default function CustomerDetailPage() {
   const [consultationPoints, setConsultationPoints] = useState<string[]>([])
   const [predictedServices, setPredictedServices] = useState<any[]>([])
   const [insights, setInsights] = useState({
-    churnRate: 0,
     deviceChangeRate: 0,
+    deviceChangeReasoning: '',
     planChangeRate: 0,
+    planChangeReasoning: '',
     complaintRate: 0,
-    overallScore: 0
+    complaintReasoning: '',
+    overallScore: 0,
+    overallReasoning: ''
   })
   const [isLoading, setIsLoading] = useState(true)
   const [authChecked, setAuthChecked] = useState(false)
   const [showUrgentAlert, setShowUrgentAlert] = useState(false)
   const [latestConsultation, setLatestConsultation] = useState<string>('')
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+
+  // 각 지표 토글 상태
+  const [toggleStates, setToggleStates] = useState({
+    device: false,
+    plan: false,
+    complaint: false,
+    overall: false
+  })
+
+  const toggleReasoning = (key: keyof typeof toggleStates) => {
+    setToggleStates(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+  }
 
   useEffect(() => {
     checkAuth()
@@ -94,13 +113,13 @@ export default function CustomerDetailPage() {
       await loadCustomerData()
 
       // 상담 내역 로드
-      await loadConversations()
+      const convs = await loadConversations()
 
       // AI 분석 자동 실행
       await analyzeCustomer()
 
-      // 긴급 상담 브리핑 체크
-      checkUrgentConsultation()
+      // 긴급 상담 브리핑 체크 (로드된 상담 데이터를 직접 전달)
+      checkUrgentConsultation(convs)
     } catch (error) {
       console.error('Failed to load data:', error)
     } finally {
@@ -120,13 +139,15 @@ export default function CustomerDetailPage() {
     }
   }
 
-  const loadConversations = async () => {
+  const loadConversations = async (): Promise<Conversation[]> => {
     try {
       // Supabase에서 conversations와 messages 가져오기
       const response = await fetch(`/api/agency/customer/${customerId}/conversations`)
       if (response.ok) {
         const data = await response.json()
-        setConversations(data.conversations || [])
+        const convs = data.conversations || []
+        setConversations(convs)
+        return convs
       }
     } catch (error) {
       console.error('Failed to load conversations:', error)
@@ -177,28 +198,56 @@ export default function CustomerDetailPage() {
         }
       ]
       setConversations(dummyConversations)
+      return dummyConversations
     }
+    return []
   }
 
-  const checkUrgentConsultation = () => {
+  const checkUrgentConsultation = (convs: Conversation[]) => {
     // 최근 3일 이내 상담 내역 확인
-    const recentConversations = conversations.filter(conv => {
+    const recentConversations = convs.filter(conv => {
       const daysDiff = differenceInDays(new Date(), new Date(conv.started_at))
       return daysDiff <= 3
+    })
+
+    console.log('[긴급 상담 체크]', {
+      totalConversations: convs.length,
+      recentConversations: recentConversations.length,
+      dates: recentConversations.map(c => c.started_at)
     })
 
     if (recentConversations.length > 0) {
       // 가장 최근 상담의 요약을 가져옴
       const latest = recentConversations[0]
-      if (latest.summary) {
+
+      console.log('[긴급 상담 체크] 최신 상담 데이터:', {
+        hasSummary: !!latest.summary,
+        summary: latest.summary,
+        summaryText: latest.summary?.summary
+      })
+
+      if (latest.summary && latest.summary.summary) {
         setLatestConsultation(latest.summary.summary)
+      } else {
+        // 요약이 없는 경우 메시지 내용 기반 간단 요약
+        const userMessages = latest.messages?.filter(m => m.role === 'user') || []
+        if (userMessages.length > 0) {
+          setLatestConsultation(`고객 문의: ${userMessages[0].content.substring(0, 100)}...`)
+        } else {
+          setLatestConsultation('최근 상담 이력이 있으나 요약 정보가 생성 중입니다.')
+        }
       }
       setShowUrgentAlert(true)
+      console.log('[긴급 상담 알림] 팝업 표시됨')
+    } else {
+      console.log('[긴급 상담 알림] 최근 3일 이내 상담 없음')
     }
   }
 
   const analyzeCustomer = async () => {
     try {
+      console.log('[Dashboard] Starting AI analysis for:', customerId)
+
       // AI 분석 API 호출
       const response = await fetch('/api/agency/predict', {
         method: 'POST',
@@ -208,43 +257,100 @@ export default function CustomerDetailPage() {
 
       if (response.ok) {
         const data = await response.json()
-        // 실제 API 응답 처리
+        console.log('[Dashboard] Analysis result:', data)
+
+        // API 응답을 state에 반영
+        setInsights({
+          deviceChangeRate: data.deviceUpgradeScore || 0,
+          deviceChangeReasoning: data.deviceUpgradeReasoning || '',
+          planChangeRate: data.planChangeScore || 0,
+          planChangeReasoning: data.planChangeReasoning || '',
+          complaintRate: data.complaintRate || 0,
+          complaintReasoning: data.complaintReasoning || '',
+          overallScore: data.overallScore || 0,
+          overallReasoning: data.overallReasoning || ''
+        })
+
+        // 상담 개선 포인트 생성 (예측 기반)
+        const points: string[] = []
+
+        if (data.complaintRate > 60) {
+          points.push('고객 불만이 높은 상태입니다. 신속하고 친절한 응대가 필요합니다.')
+        }
+
+        if (data.deviceUpgradeScore > 50) {
+          points.push('기기 변경 의향이 높습니다. 최신 기기 프로모션을 우선 안내하세요.')
+        }
+
+        if (data.planChangeScore > 50) {
+          points.push('요금제 변경에 관심이 있습니다. 고객 사용 패턴에 맞는 요금제를 제안하세요.')
+        }
+
+        if (points.length === 0) {
+          points.push('고객이 안정적인 상태입니다. 정기적인 혜택 안내로 관계를 유지하세요.')
+        }
+
+        setConsultationPoints(points)
+
+        // 예상 필요 서비스 생성
+        const services: any[] = []
+
+        if (data.deviceUpgradeScore > 50) {
+          services.push({
+            title: '신규 기기 교체 프로모션',
+            description: data.deviceUpgradeReasoning,
+            priority: data.deviceUpgradeScore > 70 ? 'high' : 'medium',
+            confidence: data.deviceUpgradeScore
+          })
+        }
+
+        if (data.planChangeScore > 50) {
+          services.push({
+            title: '맞춤 요금제 추천',
+            description: data.planChangeReasoning,
+            priority: data.planChangeScore > 70 ? 'high' : 'medium',
+            confidence: data.planChangeScore
+          })
+        }
+
+        if (services.length === 0) {
+          services.push({
+            title: '고객 만족도 유지 관리',
+            description: '현재 고객이 안정적인 상태입니다. 정기적인 혜택 안내로 관계를 유지하세요.',
+            priority: 'low',
+            confidence: data.overallScore
+          })
+        }
+
+        setPredictedServices(services)
+      } else {
+        console.error('[Dashboard] API error:', response.status)
+        // 오류 시 기본값 설정
+        setInsights({
+          deviceChangeRate: 0,
+          deviceChangeReasoning: 'AI 분석에 실패했습니다.',
+          planChangeRate: 0,
+          planChangeReasoning: 'AI 분석에 실패했습니다.',
+          complaintRate: 0,
+          complaintReasoning: 'AI 분석에 실패했습니다.',
+          overallScore: 0,
+          overallReasoning: 'AI 분석에 실패했습니다.'
+        })
       }
     } catch (error) {
-      console.error('Failed to analyze customer:', error)
+      console.error('[Dashboard] Failed to analyze customer:', error)
+      // 오류 시 기본값 설정
+      setInsights({
+        deviceChangeRate: 0,
+        deviceChangeReasoning: 'AI 분석 중 오류가 발생했습니다.',
+        planChangeRate: 0,
+        planChangeReasoning: 'AI 분석 중 오류가 발생했습니다.',
+        complaintRate: 0,
+        complaintReasoning: 'AI 분석 중 오류가 발생했습니다.',
+        overallScore: 0,
+        overallReasoning: 'AI 분석 중 오류가 발생했습니다.'
+      })
     }
-
-    // 더미 데이터 (로직 확정 전)
-    setInsights({
-      churnRate: Math.floor(Math.random() * 40) + 20, // 20-60
-      deviceChangeRate: Math.floor(Math.random() * 50) + 40, // 40-90
-      planChangeRate: Math.floor(Math.random() * 40) + 30, // 30-70
-      complaintRate: Math.floor(Math.random() * 30) + 10, // 10-40
-      overallScore: 85
-    })
-
-    // 상담 개선 포인트 생성
-    setConsultationPoints([
-      '지난번 대기 시간에 대한 불만이 있었으니 빠른 응대가 필요합니다.',
-      '요금제 변경에 대한 관심이 높아 데이터 무제한 요금제를 우선 제안하세요.',
-      '청구서 내역 설명 시 더 상세하고 명확한 안내가 필요합니다.'
-    ])
-
-    // 예상 필요 서비스 생성
-    setPredictedServices([
-      {
-        title: '데이터 무제한 요금제 전환',
-        description: '최근 데이터 사용량이 급증하여 무제한 요금제가 적합합니다.',
-        priority: 'high',
-        confidence: 92
-      },
-      {
-        title: '단말기 교체 프로모션 안내',
-        description: '할부 잔여 기간이 얼마 남지 않아 신규 단말기 출시 시 교체 제안이 효과적입니다.',
-        priority: 'medium',
-        confidence: 78
-      }
-    ])
   }
 
   const isRecentConversation = (date: string) => {
@@ -279,6 +385,25 @@ export default function CustomerDetailPage() {
   }
 
   if (isLoading) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{
+          backgroundColor: 'rgba(248, 248, 255, 0.95)'
+        }}
+      >
+        <Image
+          src="/adot_loading.gif"
+          alt="Loading..."
+          width={800}
+          height={350}
+          unoptimized
+        />
+      </div>
+    )
+  }
+
+  if (false) {
     return (
       <div
         className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
@@ -649,19 +774,18 @@ export default function CustomerDetailPage() {
     <div className="min-h-screen p-6" style={{ backgroundColor: '#F8F9FA', fontFamily: "'SK Mobius', sans-serif" }}>
       {/* 긴급 상담 브리핑 팝업 */}
       {showUrgentAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" style={{ fontFamily: "'SK Mobius', sans-serif" }}>
           <div
-            className="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-shake"
-            style={{ fontFamily: "'SK Mobius', sans-serif" }}
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-shake border border-gray-200/50"
           >
-            {/* 헤더 */}
-            <div className="bg-gradient-to-r from-[#EA002C] to-[#FF4444] p-6 text-white">
+            {/* 헤더 - 대시보드 스타일 (T-Bridge Purple) */}
+            <div className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] p-6 text-white">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
                   <AlertCircle className="w-7 h-7" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold">⚠️ 긴급 상담 브리핑</h2>
+                  <h2 className="text-2xl font-bold">긴급 상담 브리핑</h2>
                   <p className="text-sm text-white/90 mt-1">최근 3일 내 방문 고객</p>
                 </div>
               </div>
@@ -669,31 +793,31 @@ export default function CustomerDetailPage() {
 
             {/* 내용 */}
             <div className="p-6 space-y-4">
-              {/* 최신 상담 내역 */}
-              <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-5 border-2 border-orange-200">
+              {/* 최신 상담 내역 - 대시보드 카드 스타일 */}
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-5 border border-blue-200/50">
                 <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-5 h-5 text-orange-600" />
-                  <h3 className="text-sm font-bold text-orange-900">최신 상담 내역</h3>
+                  <MessageSquare className="w-5 h-5 text-[#3617CE]" />
+                  <h3 className="text-sm font-semibold text-gray-900">최신 상담 내역</h3>
                 </div>
-                <p className="text-sm text-gray-800 leading-relaxed">
+                <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
                   {latestConsultation || '상담 내역을 확인할 수 없습니다.'}
                 </p>
               </div>
 
-              {/* 불만 지수 */}
-              <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-5 border-2 border-red-300">
+              {/* 불만 지수 - SK Red 유지 (경고 표시) */}
+              <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-5 border border-red-200/50">
                 <div className="flex items-center gap-2 mb-3">
                   <TrendingUp className="w-5 h-5 text-[#EA002C]" />
-                  <h3 className="text-sm font-bold text-red-900">현재 불만 지수</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">현재 불만 지수</h3>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-6">
                   <div className="flex-1">
                     <div className="text-5xl font-bold text-[#EA002C]">
                       {insights.complaintRate}%
                     </div>
-                    <p className="text-xs text-red-700 mt-1">AI 분석 기반 불만 확률</p>
+                    <p className="text-xs text-gray-600 mt-1">AI 분석 기반 불만 확률</p>
                   </div>
-                  <div className="w-24 h-24">
+                  <div className="w-20 h-20">
                     <svg className="w-full h-full" viewBox="0 0 100 100">
                       <circle
                         cx="50"
@@ -701,7 +825,7 @@ export default function CustomerDetailPage() {
                         r="40"
                         fill="none"
                         stroke="#FFE5E5"
-                        strokeWidth="8"
+                        strokeWidth="10"
                       />
                       <circle
                         cx="50"
@@ -709,7 +833,7 @@ export default function CustomerDetailPage() {
                         r="40"
                         fill="none"
                         stroke="#EA002C"
-                        strokeWidth="8"
+                        strokeWidth="10"
                         strokeDasharray={`${2 * Math.PI * 40}`}
                         strokeDashoffset={`${2 * Math.PI * 40 * (1 - insights.complaintRate / 100)}`}
                         strokeLinecap="round"
@@ -721,25 +845,27 @@ export default function CustomerDetailPage() {
                 </div>
               </div>
 
-              {/* 주의사항 */}
-              <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+              {/* 주의사항 - 대시보드 스타일 */}
+              <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200/50">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-yellow-800 leading-relaxed">
-                    <span className="font-bold">주의:</span> 최근 방문 이력이 있는 고객입니다. 이전 상담 내용을 숙지하고 신중하게 응대해주세요.
-                  </p>
+                  <AlertCircle className="w-5 h-5 text-[#3617CE] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-gray-900 mb-1">상담 전 확인사항</p>
+                    <p className="text-xs text-gray-700 leading-relaxed">
+                      최근 방문 이력이 있는 고객입니다. 이전 상담 내용을 숙지하고 신중하게 응대해주세요.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 하단 버튼 */}
+            {/* 하단 버튼 - T-Bridge 스타일 */}
             <div className="p-6 pt-0">
               <button
                 onClick={() => setShowUrgentAlert(false)}
-                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-all hover:scale-105 hover:shadow-xl"
+                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-all hover:scale-[1.02] hover:shadow-xl"
                 style={{
-                  background: 'linear-gradient(135deg, #EA002C 0%, #FF4444 100%)',
-                  fontFamily: "'SK Mobius', sans-serif"
+                  background: 'linear-gradient(135deg, #3617CE 0%, #5B3FE8 100%)'
                 }}
               >
                 확인 후 상담 시작
@@ -916,7 +1042,7 @@ export default function CustomerDetailPage() {
         }
 
         @keyframes shake {
-          0%, 100% {
+          0% {
             transform: translateX(0) scale(0.95);
             opacity: 0;
           }
@@ -934,21 +1060,31 @@ export default function CustomerDetailPage() {
           }
           40% {
             transform: translateX(5px) scale(1);
+            opacity: 1;
           }
           50% {
             transform: translateX(-3px) scale(1);
+            opacity: 1;
           }
           60% {
             transform: translateX(3px) scale(1);
+            opacity: 1;
           }
           70% {
             transform: translateX(-2px) scale(1);
+            opacity: 1;
           }
           80% {
             transform: translateX(2px) scale(1);
+            opacity: 1;
           }
           90% {
             transform: translateX(-1px) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(0) scale(1);
+            opacity: 1;
           }
         }
 
@@ -957,7 +1093,7 @@ export default function CustomerDetailPage() {
         }
 
         .animate-shake {
-          animation: shake 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+          animation: shake 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
         }
       `}</style>
 
@@ -1010,10 +1146,8 @@ export default function CustomerDetailPage() {
                 <p className="text-sm font-semibold text-green-900">결합상품</p>
               </div>
               <div className="flex gap-2">
-                {customer.bundle_types && customer.bundle_types.length > 0 ? (
-                  customer.bundle_types.map((type: string, idx: number) => (
-                    <Badge key={idx} className="bg-green-600 hover:bg-green-700 text-xs">{type}</Badge>
-                  ))
+                {customer.family_members_count > 0 ? (
+                  <p className="text-base font-bold text-green-900">가족결합 {customer.family_members_count}인</p>
                 ) : (
                   <span className="text-sm text-gray-600">없음</span>
                 )}
@@ -1025,11 +1159,11 @@ export default function CustomerDetailPage() {
                 <Smartphone className="w-5 h-5 text-purple-600" />
                 <p className="text-sm font-semibold text-purple-900">단말기</p>
               </div>
-              <p className="text-sm font-bold text-purple-900">{customer.device_model || '정보 없음'}</p>
-              {customer.device_remaining_months && (
-                <Badge className="mt-1 bg-purple-600 hover:bg-purple-700 text-xs">
-                  잔여 {customer.device_remaining_months}개월
-                </Badge>
+              <p className="text-base font-bold text-purple-900">{customer.device_model_name || '정보 없음'}</p>
+              {customer.device_purchase_date && (
+                <p className="text-xs text-purple-700 mt-1">
+                  구매일: {format(new Date(customer.device_purchase_date), 'yyyy.MM.dd')}
+                </p>
               )}
             </div>
 
@@ -1056,51 +1190,50 @@ export default function CustomerDetailPage() {
             </h2>
 
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-              {conversations.length > 0 ? (
-                conversations.map((conv) => {
-                  const isRecent = isRecentConversation(conv.started_at)
-                  return (
-                    <div
-                      key={conv.id}
-                      onClick={() => setSelectedConversation(conv)}
-                      className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 ${
-                        isRecent ? 'border-2 border-[#EA002C]' : 'border border-gray-200'
-                      } transition-all hover:shadow-md cursor-pointer hover:scale-[1.02]`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm text-gray-600 font-medium">
-                          {format(new Date(conv.started_at), 'yyyy.MM.dd HH:mm')}
-                        </span>
-                        {isRecent && (
-                          <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
-                        )}
-                        {conv.summary && (
+              {(() => {
+                // conversation_summaries가 있는 상담만 필터링
+                const conversationsWithSummary = conversations.filter(conv => conv.summary)
+
+                return conversationsWithSummary.length > 0 ? (
+                  conversationsWithSummary.map((conv) => {
+                    const isRecent = isRecentConversation(conv.started_at)
+                    return (
+                      <div
+                        key={conv.id}
+                        onClick={() => setSelectedConversation(conv)}
+                        className={`bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 ${
+                          isRecent ? 'border-2 border-[#EA002C]' : 'border border-gray-200'
+                        } transition-all hover:shadow-md cursor-pointer hover:scale-[1.02]`}
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm text-gray-600 font-medium">
+                            {format(new Date(conv.started_at), 'yyyy.MM.dd HH:mm')}
+                          </span>
+                          {isRecent && (
+                            <Badge className="bg-[#EA002C] text-white text-xs">최근</Badge>
+                          )}
                           <Badge className={`${getSentimentColor(conv.summary.sentiment)} text-white text-xs`}>
                             {getSentimentText(conv.summary.sentiment)}
                           </Badge>
-                        )}
-                      </div>
+                        </div>
 
-                      {conv.summary && (
-                        <>
-                          <div className="flex items-center gap-2 mb-3">
-                            <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
-                              {conv.summary.category}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
-                            {conv.summary.summary}
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  )
-                })
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  상담 내역이 없습니다.
-                </div>
-              )}
+                        <div className="flex items-center gap-2 mb-3">
+                          <Badge variant="outline" className="text-[#3617CE] border-[#3617CE]">
+                            {conv.summary.category}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-800 leading-relaxed" style={{ lineHeight: '1.8' }}>
+                          {conv.summary.summary}
+                        </p>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    상담 요약이 있는 내역이 없습니다.
+                  </div>
+                )
+              })()}
             </div>
           </div>
 
@@ -1185,45 +1318,92 @@ export default function CustomerDetailPage() {
                 </div>
               </div>
 
-              <div className="text-center">
+              <div className="text-center mb-3">
                 <Badge className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] text-white">
-                  기기변경 확률 높음
+                  {insights.overallScore >= 70 ? '우수 잠재고객' : insights.overallScore >= 40 ? '보통' : '관심 필요'}
                 </Badge>
+              </div>
+
+              {/* 종합 점수 산출 근거 토글 */}
+              <div className="text-center">
+                <button
+                  onClick={() => toggleReasoning('overall')}
+                  className="inline-flex items-center gap-1 text-xs text-purple-700 hover:text-purple-900 transition-colors"
+                >
+                  {toggleStates.overall ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  <span>산출 근거 {toggleStates.overall ? '닫기' : '보기'}</span>
+                </button>
+                {toggleStates.overall && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border border-purple-200 text-left">
+                    <p className="text-xs text-gray-700 leading-relaxed">{insights.overallReasoning}</p>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* 세분화 지표 */}
             <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-gray-700">이탈 확률</span>
-                  <span className="text-sm font-bold text-gray-900">{insights.churnRate}%</span>
-                </div>
-                <Progress value={insights.churnRate} className="h-2" />
-              </div>
-
-              <div>
+              {/* 기기변경 확률 */}
+              <div className="bg-red-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-700">기기변경 확률</span>
                   <span className="text-sm font-bold text-[#EA002C]">{insights.deviceChangeRate}%</span>
                 </div>
-                <Progress value={insights.deviceChangeRate} className="h-2" style={{ '--progress-background': '#EA002C' } as any} />
+                <Progress value={insights.deviceChangeRate} className="h-2 mb-2" style={{ '--progress-background': '#EA002C' } as any} />
+                <button
+                  onClick={() => toggleReasoning('device')}
+                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  {toggleStates.device ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  <span>산출 근거 {toggleStates.device ? '닫기' : '보기'}</span>
+                </button>
+                {toggleStates.device && (
+                  <div className="mt-2 p-3 bg-white rounded-lg border border-red-200">
+                    <p className="text-xs text-gray-700 leading-relaxed">{insights.deviceChangeReasoning}</p>
+                  </div>
+                )}
               </div>
 
-              <div>
+              {/* 요금제변경 확률 */}
+              <div className="bg-blue-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-700">요금제변경 확률</span>
                   <span className="text-sm font-bold text-gray-900">{insights.planChangeRate}%</span>
                 </div>
-                <Progress value={insights.planChangeRate} className="h-2" />
+                <Progress value={insights.planChangeRate} className="h-2 mb-2" />
+                <button
+                  onClick={() => toggleReasoning('plan')}
+                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  {toggleStates.plan ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  <span>산출 근거 {toggleStates.plan ? '닫기' : '보기'}</span>
+                </button>
+                {toggleStates.plan && (
+                  <div className="mt-2 p-3 bg-white rounded-lg border border-blue-200">
+                    <p className="text-xs text-gray-700 leading-relaxed">{insights.planChangeReasoning}</p>
+                  </div>
+                )}
               </div>
 
-              <div>
+              {/* 불만 확률 */}
+              <div className="bg-orange-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-700">불만 확률</span>
                   <span className="text-sm font-bold text-gray-900">{insights.complaintRate}%</span>
                 </div>
-                <Progress value={insights.complaintRate} className="h-2" />
+                <Progress value={insights.complaintRate} className="h-2 mb-2" />
+                <button
+                  onClick={() => toggleReasoning('complaint')}
+                  className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  {toggleStates.complaint ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  <span>산출 근거 {toggleStates.complaint ? '닫기' : '보기'}</span>
+                </button>
+                {toggleStates.complaint && (
+                  <div className="mt-2 p-3 bg-white rounded-lg border border-orange-200">
+                    <p className="text-xs text-gray-700 leading-relaxed">{insights.complaintReasoning}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
