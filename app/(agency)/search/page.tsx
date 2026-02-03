@@ -9,6 +9,27 @@ import { Search, User, Phone, Calendar, TrendingUp, MessageSquare, Home, FileTex
 import Link from 'next/link'
 import { format } from 'date-fns'
 
+// 전화번호 포맷 함수
+const formatPhoneNumber = (phone: string | null | undefined): string => {
+  if (!phone) return '-'
+
+  // 숫자만 추출
+  const numbers = phone.replace(/[^0-9]/g, '')
+
+  // 010-0000-0000 형식으로 변환
+  if (numbers.length === 11 && numbers.startsWith('010')) {
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`
+  }
+
+  // 다른 형식의 전화번호 처리 (예: 02-0000-0000)
+  if (numbers.length === 10) {
+    return `${numbers.slice(0, 2)}-${numbers.slice(2, 6)}-${numbers.slice(6)}`
+  }
+
+  // 형식이 맞지 않으면 원본 반환
+  return phone
+}
+
 export default function SearchPage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
@@ -58,7 +79,7 @@ export default function SearchPage() {
       searches.unshift({
         id: customer.id,
         name: customer.customer_name,
-        phone: customer.customer_phone,
+        phone: formatPhoneNumber(customer.customer_phone),
         time: new Date().toLocaleString('ko-KR', {
           month: 'numeric',
           day: 'numeric',
@@ -872,7 +893,7 @@ export default function SearchPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-bold text-gray-900 truncate">{customer.customer_name || '-'}</h3>
-                      <p className="text-xs text-gray-600">{customer.customer_phone || '-'}</p>
+                      <p className="text-xs text-gray-600">{formatPhoneNumber(customer.customer_phone)}</p>
                     </div>
                   </div>
                   <div className="space-y-2 text-sm">
@@ -940,7 +961,7 @@ export default function SearchPage() {
                         {customer.customer_birth || '정보 없음'}
                       </td>
                       <td className="py-4 px-4 text-gray-700" style={{ fontFamily: 'Inter, Roboto' }}>
-                        {customer.customer_phone || '-'}
+                        {formatPhoneNumber(customer.customer_phone)}
                       </td>
                       <td className="py-4 px-4">
                         <div>

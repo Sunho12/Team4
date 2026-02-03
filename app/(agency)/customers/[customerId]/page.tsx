@@ -977,7 +977,7 @@ export default function CustomerDetailPage() {
       {showUrgentAlert && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn" style={{ fontFamily: "'SK Mobius', sans-serif" }}>
           <div
-            className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden animate-shake border border-gray-200/50"
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden border border-gray-200/50"
           >
             {/* 헤더 - 대시보드 스타일 (T-Bridge Purple) */}
             <div className="bg-gradient-to-r from-[#3617CE] to-[#5B3FE8] p-6 text-white">
