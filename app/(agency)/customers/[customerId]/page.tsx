@@ -525,15 +525,15 @@ export default function CustomerDetailPage() {
       <div
         className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8"
         style={{
-          backgroundColor: 'rgba(248, 248, 255, 0.95)',
+          backgroundColor: 'rgba(251, 251, 251, 0.95)',
           fontFamily: "'SK Mobius', sans-serif"
         }}
       >
         <Image
           src="/adot_loading.gif"
           alt="Loading..."
-          width={800}
-          height={350}
+          width={300}
+          height={300}
           unoptimized
         />
         <div className="text-center space-y-3">
