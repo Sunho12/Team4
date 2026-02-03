@@ -7,14 +7,54 @@ import { searchSKTStores, formatStoreResults } from '@/lib/utils/storeSearch'
 
 /**
  * 대리점 검색 요청 감지
+ * - 사용자가 명시적으로 대리점/매장을 찾는 경우
  * - 챗봇이 "대리점 추천해드릴까요?" 또는 "지역을 알려주세요" 질문을 한 경우
- * - 사용자가 명시적으로 위치를 입력한 경우
  */
 function shouldSearchStores(recentMessages: any[], currentMessage: string): boolean {
-  // 최근 3개 메시지만 확인 (너무 넓은 범위 방지)
+  // 최근 3개 메시지만 확인
   const lastAssistantMessage = recentMessages
     .filter(m => m.role === 'assistant')
     .slice(-1)[0]?.content || ''
+
+  // 사용자가 거부 의사를 표현했는지 확인
+  const isRejection =
+    currentMessage.includes('아니') ||
+    currentMessage.includes('괜찮') ||
+    currentMessage.includes('됐') ||
+    currentMessage.includes('필요없') ||
+    currentMessage.includes('안 할게') ||
+    currentMessage.includes('안할게')
+
+  // 실제 한국 지역명 패턴
+  const isValidLocation =
+    currentMessage.length >= 2 &&
+    currentMessage.length < 50 &&
+    !currentMessage.includes('?') &&
+    !isRejection &&
+    (
+      // 지역명으로 끝나는 패턴
+      /[가-힣]+(동|구|시|군|읍|면|역|로|길|가|리)/.test(currentMessage) ||
+      // "강남역", "이촌1동" 같은 패턴
+      /[가-힣]+\d*[동구시군역]/.test(currentMessage) ||
+      // "서울", "부산" 같은 광역시명
+      /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)/.test(currentMessage)
+    )
+
+  // 사용자가 직접 대리점/매장을 찾는 키워드를 포함하는 경우
+  const userAskedForStore =
+    (currentMessage.includes('대리점') ||
+     currentMessage.includes('매장') ||
+     currentMessage.includes('지점') ||
+     currentMessage.includes('샵') ||
+     currentMessage.includes('SKT') ||
+     currentMessage.includes('티월드')) &&
+    (currentMessage.includes('찾') ||
+     currentMessage.includes('어디') ||
+     currentMessage.includes('위치') ||
+     currentMessage.includes('추천') ||
+     currentMessage.includes('알려') ||
+     currentMessage.includes('보여') ||
+     isValidLocation)
 
   // 챗봇이 대리점 추천이나 위치 질문을 했는지 확인
   const botAskedForLocation =
@@ -31,39 +71,21 @@ function shouldSearchStores(recentMessages: any[], currentMessage: string): bool
       lastAssistantMessage.includes('위치')
     ))
 
-  // 사용자가 거부 의사를 표현했는지 확인
-  const isRejection =
-    currentMessage.includes('아니') ||
-    currentMessage.includes('괜찮') ||
-    currentMessage.includes('됐') ||
-    currentMessage.includes('필요없') ||
-    currentMessage.includes('안 할게') ||
-    currentMessage.includes('안할게')
-
-  // 실제 한국 지역명 패턴 (엄격한 검증)
-  const isValidLocation =
-    currentMessage.length >= 2 &&
-    currentMessage.length < 20 &&
-    !currentMessage.includes('?') &&
-    !isRejection &&
-    (
-      // 지역명으로 끝나는 패턴
-      /[가-힣]+(동|구|시|군|읍|면|역|로|길|가|리)$/.test(currentMessage.trim()) ||
-      // 또는 "강남역", "이촌1동" 같은 패턴
-      /^[가-힣]+\d*[동구시군역]$/.test(currentMessage.trim()) ||
-      // "서울 강남구", "용산구 이촌동" 같은 패턴
-      /^[가-힣\s]+(동|구|시|군|읍|면|역)$/.test(currentMessage.trim())
-    )
+  // 챗봇이 물어보고 사용자가 지역명을 대답한 경우
+  const respondedWithLocation = botAskedForLocation && isValidLocation && !isRejection
 
   console.log('Store search check:', {
+    userAskedForStore,
     botAskedForLocation,
+    respondedWithLocation,
     isValidLocation,
     isRejection,
     message: currentMessage,
     lastAssistantMsg: lastAssistantMessage.substring(0, 100)
   })
 
-  return botAskedForLocation && isValidLocation && !isRejection
+  // 사용자가 직접 요청했거나, 챗봇이 물어보고 지역명으로 대답한 경우
+  return (userAskedForStore || respondedWithLocation) && !isRejection
 }
 
 export async function POST(request: Request) {
