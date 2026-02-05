@@ -16,11 +16,13 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // model-viewer 스크립트 동적 로드
-    const modelViewerScript = document.createElement('script')
-    modelViewerScript.type = 'module'
-    modelViewerScript.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.1/model-viewer.min.js'
-    document.head.appendChild(modelViewerScript)
+    // model-viewer 스크립트 동적 로드 (중복 방지)
+    if (!customElements.get('model-viewer') && !document.querySelector('script[src*="model-viewer"]')) {
+      const modelViewerScript = document.createElement('script')
+      modelViewerScript.type = 'module'
+      modelViewerScript.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.1/model-viewer.min.js'
+      document.head.appendChild(modelViewerScript)
+    }
 
     // Kakao Maps SDK 로드 (대리점 지도 표시용)
     const kakaoJsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY
@@ -32,12 +34,6 @@ export default function ChatPage() {
     }
 
     checkAuthAndInitialize()
-
-    return () => {
-      if (document.head.contains(modelViewerScript)) {
-        document.head.removeChild(modelViewerScript)
-      }
-    }
   }, [])
 
   const checkAuthAndInitialize = async () => {

@@ -15,11 +15,28 @@ export async function POST(request: Request) {
       )
     }
 
+    console.log('[End API] Starting end conversation process:', conversationId)
+
     // 1. End the conversation
-    await endConversation(conversationId)
+    try {
+      await endConversation(conversationId)
+      console.log('[End API] Conversation status updated to ended')
+    } catch (error) {
+      console.error('[End API] Failed to end conversation:', error)
+      throw error
+    }
 
     // 2. Generate summary
-    const summary = await generateSummary(conversationId)
+    let summary
+    try {
+      console.log('[End API] Starting summary generation')
+      summary = await generateSummary(conversationId)
+      console.log('[End API] Summary generated successfully:', summary)
+    } catch (error) {
+      console.error('[End API] Failed to generate summary:', error)
+      // Throw the error with details
+      throw new Error(`Summary generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
 
     // 3. Get session_id for purchase intent analysis
     const supabase = await createServiceRoleClient()
@@ -34,8 +51,9 @@ export async function POST(request: Request) {
     if (conversation?.session_id) {
       try {
         predictions = await analyzePurchaseIntent(conversation.session_id)
+        console.log('[End API] Predictions generated successfully')
       } catch (error) {
-        console.error('Failed to generate predictions:', error)
+        console.error('[End API] Failed to generate predictions:', error)
         // Don't fail the whole request if prediction fails
       }
     }
@@ -45,9 +63,9 @@ export async function POST(request: Request) {
       predictions,
     })
   } catch (error) {
-    console.error('Error ending conversation:', error)
+    console.error('[End API] Error ending conversation:', error)
     return NextResponse.json(
-      { error: 'Failed to end conversation' },
+      { error: error instanceof Error ? error.message : 'Failed to end conversation' },
       { status: 500 }
     )
   }

@@ -40,9 +40,14 @@ export default function Home() {
             <button className="text-sm text-[#666] hover:text-[#EA002C] font-medium transition-colors duration-200">
               매장 찾기
             </button>
-            <button className="text-sm text-[#666] hover:text-[#EA002C] font-medium transition-colors duration-200">
+            <a
+              href="https://create-hoin.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[#666] hover:text-[#EA002C] font-medium transition-colors duration-200"
+            >
               공지사항
-            </button>
+            </a>
           </nav>
         </div>
       </header>

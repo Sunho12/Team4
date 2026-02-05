@@ -17,20 +17,16 @@ export default function TworldPage() {
   const [userName, setUserName] = useState('')
 
   useEffect(() => {
-    // model-viewer 스크립트 동적 로드
-    const script = document.createElement('script')
-    script.type = 'module'
-    script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js'
-    document.head.appendChild(script)
+    // model-viewer 스크립트 동적 로드 (중복 방지)
+    if (!customElements.get('model-viewer') && !document.querySelector('script[src*="model-viewer"]')) {
+      const script = document.createElement('script')
+      script.type = 'module'
+      script.src = 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.0.1/model-viewer.min.js'
+      document.head.appendChild(script)
+    }
 
     // 로그인 상태 확인
     checkAuth()
-
-    return () => {
-      if (script.parentNode) {
-        script.parentNode.removeChild(script)
-      }
-    }
   }, [])
 
   const checkAuth = async () => {
