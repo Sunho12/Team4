@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS customer_demographics (
 
   -- 요금제 정보
   current_plan_type VARCHAR(100), -- 현재 요금제명 (예: "5G 프리미엄", "LTE 스탠다드")
-  plan_price INTEGER, -- 요금제 가격
+  current_plan_price INTEGER, -- 요금제 가격
 
   -- 기타 인구통계 정보 (필요시 확장)
   age_group VARCHAR(20),
@@ -47,7 +47,7 @@ CREATE TRIGGER update_customer_demographics_updated_at
   EXECUTE FUNCTION update_customer_demographics_updated_at();
 
 -- Insert sample data for existing test user (선호)
-INSERT INTO customer_demographics (user_id, current_plan_type, plan_price)
+INSERT INTO customer_demographics (user_id, current_plan_type, current_plan_price)
 SELECT
   id,
   '5G 프리미엄',

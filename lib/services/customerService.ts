@@ -113,7 +113,7 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
   if (profileIds.length > 0) {
     const { data: demographicsData, error: demoError } = await supabase
       .from('customer_demographics')
-      .select('user_id, current_plan_type, plan_price')
+      .select('user_id, current_plan_type, current_plan_price')
       .in('user_id', profileIds)
 
     if (demoError) {
@@ -133,7 +133,7 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
       customer_phone: profile.phone_number,
       customer_birth: profile.birthdate,
       plan_name: demo?.current_plan_type || null,
-      plan_price: demo?.plan_price || null,
+      plan_price: demo?.current_plan_price || null,
       bundle_type: null, // 테이블 삭제됨
       device_model: null,
       device_remaining_months: null,
@@ -179,7 +179,7 @@ export async function getRecentCustomers(limit: number = 5): Promise<CustomerSea
     if (profileIds.length > 0) {
       const { data: demographicsData, error: demoError } = await supabase
         .from('customer_demographics')
-        .select('user_id, current_plan_type, plan_price')
+        .select('user_id, current_plan_type, current_plan_price')
         .in('user_id', profileIds)
 
       if (demoError) {
@@ -199,7 +199,7 @@ export async function getRecentCustomers(limit: number = 5): Promise<CustomerSea
         customer_phone: profile.phone_number,
         customer_birth: profile.birthdate,
         plan_name: demo?.current_plan_type || null,
-        plan_price: demo?.plan_price || null,
+        plan_price: demo?.current_plan_price || null,
         bundle_type: null, // 테이블 삭제됨
         device_model: null,
         device_remaining_months: null,
@@ -348,7 +348,7 @@ export async function getCustomerDetail(customerId: string) {
     // Get customer demographics (plan info)
     const { data: demographicsData, error: demographicsError } = await supabase
       .from('customer_demographics')
-      .select('current_plan_type, plan_price')
+      .select('current_plan_type, current_plan_price')
       .eq('user_id', userId)
       .single()
 
@@ -379,7 +379,7 @@ export async function getCustomerDetail(customerId: string) {
     device_model_name: null, // 테이블 삭제됨
     device_purchase_date: null, // 테이블 삭제됨
     plan_name: demographics?.current_plan_type || null, // customer_demographics에서 조회
-    plan_price: demographics?.plan_price || null, // customer_demographics에서 조회
+    plan_price: demographics?.current_plan_price || null, // customer_demographics에서 조회
   }
 
   // Get predictions for all sessions of this customer
