@@ -105,42 +105,44 @@ export async function searchCustomers(query: string): Promise<CustomerSearchResu
     throw new Error(`Failed to search customers: ${error.message}`)
   }
 
-  // profiles 결과를 CustomerSearchResult 형식으로 변환 (추가 정보 포함)
-  const results: CustomerSearchResult[] = await Promise.all(
-    (profileResults || []).map(async (profile) => {
-      const userId = profile.id
+  // profiles 결과를 CustomerSearchResult 형식으로 변환
+  // Get demographics for all profile results
+  const profileIds = profileResults.map(p => p.id)
+  let demographicsMap: Record<string, any> = {}
 
-      // 1. 가족결합 정보
-      const { data: familyMembers } = await supabase
-        .from('family_members')
-        .select('id')
-        .eq('user_id', userId)
-      const familyMembersCount = familyMembers?.length || 0
+  if (profileIds.length > 0) {
+    const { data: demographicsData, error: demoError } = await supabase
+      .from('customer_demographics')
+      .select('user_id, current_plan_type, plan_price')
+      .in('user_id', profileIds)
 
-      // 2. 요금제 정보
-      const { data: planData } = await supabase
-        .from('customer_demographics')
-        .select('current_plan_type, current_plan_price')
-        .eq('user_id', userId)
-        .maybeSingle()
+    if (demoError) {
+      console.error('Error fetching demographics:', demoError)
+    } else if (demographicsData) {
+      demographicsMap = Object.fromEntries(
+        demographicsData.map(d => [d.user_id, d])
+      )
+    }
+  }
 
-      return {
-        id: profile.id,
-        customer_name: profile.full_name,
-        customer_phone: profile.phone_number,
-        customer_birth: profile.birthdate,
-        plan_name: planData?.current_plan_type || null,
-        plan_price: planData?.current_plan_price || null,
-        bundle_type: familyMembersCount > 0 ? `가족결합 ${familyMembersCount}인` : null,
-        device_model: null,
-        device_remaining_months: null,
-        created_at: profile.created_at,
-        source: 'profile' as const,
-        user_id: profile.id,
-        conversations: []
-      }
-    })
-  )
+  const results: CustomerSearchResult[] = (profileResults || []).map((profile) => {
+    const demo = demographicsMap[profile.id]
+    return {
+      id: profile.id,
+      customer_name: profile.full_name,
+      customer_phone: profile.phone_number,
+      customer_birth: profile.birthdate,
+      plan_name: demo?.current_plan_type || null,
+      plan_price: demo?.plan_price || null,
+      bundle_type: null, // 테이블 삭제됨
+      device_model: null,
+      device_remaining_months: null,
+      created_at: profile.created_at,
+      source: 'profile' as const,
+      user_id: profile.id,
+      conversations: []
+    }
+  })
 
   console.log(`✅ Found ${results.length} customers from profiles`)
 
@@ -170,41 +172,43 @@ export async function getRecentCustomers(limit: number = 5): Promise<CustomerSea
       throw new Error(`Failed to fetch recent customers: ${error.message}`)
     }
 
-    const results: CustomerSearchResult[] = await Promise.all(
-      (recentProfiles || []).map(async (profile) => {
-        const userId = profile.id
+    // Get demographics for all recent profiles
+    const profileIds = (recentProfiles || []).map(p => p.id)
+    let demographicsMap: Record<string, any> = {}
 
-        // 1. 가족결합 정보
-        const { data: familyMembers } = await supabase
-          .from('family_members')
-          .select('id')
-          .eq('user_id', userId)
-        const familyMembersCount = familyMembers?.length || 0
+    if (profileIds.length > 0) {
+      const { data: demographicsData, error: demoError } = await supabase
+        .from('customer_demographics')
+        .select('user_id, current_plan_type, plan_price')
+        .in('user_id', profileIds)
 
-        // 2. 요금제 정보
-        const { data: planData } = await supabase
-          .from('customer_demographics')
-          .select('current_plan_type, current_plan_price')
-          .eq('user_id', userId)
-          .maybeSingle()
+      if (demoError) {
+        console.error('Error fetching demographics:', demoError)
+      } else if (demographicsData) {
+        demographicsMap = Object.fromEntries(
+          demographicsData.map(d => [d.user_id, d])
+        )
+      }
+    }
 
-        return {
-          id: profile.id,
-          customer_name: profile.full_name,
-          customer_phone: profile.phone_number,
-          customer_birth: profile.birthdate,
-          plan_name: planData?.current_plan_type || null,
-          plan_price: planData?.current_plan_price || null,
-          bundle_type: familyMembersCount > 0 ? `가족결합 ${familyMembersCount}인` : null,
-          device_model: null,
-          device_remaining_months: null,
-          created_at: profile.created_at,
-          source: 'profile' as const,
-          user_id: profile.id,
-          conversations: []
-        }
-      })
-    )
+    const results: CustomerSearchResult[] = (recentProfiles || []).map((profile) => {
+      const demo = demographicsMap[profile.id]
+      return {
+        id: profile.id,
+        customer_name: profile.full_name,
+        customer_phone: profile.phone_number,
+        customer_birth: profile.birthdate,
+        plan_name: demo?.current_plan_type || null,
+        plan_price: demo?.plan_price || null,
+        bundle_type: null, // 테이블 삭제됨
+        device_model: null,
+        device_remaining_months: null,
+        created_at: profile.created_at,
+        source: 'profile' as const,
+        user_id: profile.id,
+        conversations: []
+      }
+    })
 
     console.log(`✅ Found ${results.length} recent customers`)
     return results
@@ -327,6 +331,7 @@ export async function getCustomerDetail(customerId: string) {
 
   // Get profile data (including birthdate) if we have a userId
   let profile = null
+  let demographics = null
   if (userId) {
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
@@ -339,6 +344,19 @@ export async function getCustomerDetail(customerId: string) {
     } else {
       profile = profileData
     }
+
+    // Get customer demographics (plan info)
+    const { data: demographicsData, error: demographicsError } = await supabase
+      .from('customer_demographics')
+      .select('current_plan_type, plan_price')
+      .eq('user_id', userId)
+      .single()
+
+    if (demographicsError) {
+      console.error('Error fetching demographics:', demographicsError)
+    } else {
+      demographics = demographicsData
+    }
   }
 
   // Use the first (most recent) session or create a default one
@@ -348,62 +366,20 @@ export async function getCustomerDetail(customerId: string) {
     throw new Error('No customer session found for this user')
   }
 
-  // Get additional customer data if we have userId
-  let familyMembersCount = 0
-  let deviceInfo = null
-  let planInfo = null
-
-  if (userId) {
-    // 1. 가족결합 정보 - family_members에서 이 유저를 참조하는 행 개수
-    const { data: familyMembers, error: familyError } = await supabase
-      .from('family_members')
-      .select('id')
-      .eq('user_id', userId)
-
-    if (familyError) {
-      console.error('Error fetching family members:', familyError)
-    } else {
-      familyMembersCount = familyMembers?.length || 0
-    }
-
-    // 2. 단말기 정보 - customer_devices에서 가장 최근 기기
-    const { data: deviceData, error: deviceError } = await supabase
-      .from('customer_devices')
-      .select('model_name, purchase_date')
-      .eq('user_id', userId)
-      .order('purchase_date', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (deviceError) {
-      console.error('Error fetching device info:', deviceError)
-    } else {
-      deviceInfo = deviceData
-    }
-
-    // 3. 요금제 정보 - customer_demographics에서 조회
-    const { data: planData, error: planError } = await supabase
-      .from('customer_demographics')
-      .select('current_plan_type, current_plan_price')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (planError) {
-      console.error('Error fetching plan info:', planError)
-    } else {
-      planInfo = planData
-    }
-  }
+  // NOTE: family_members, customer_devices 테이블은
+  // MIGRATION_008에서 삭제되었으므로 조회하지 않습니다.
+  // 필요한 경우 다른 방법으로 데이터를 관리해야 합니다.
 
   // Add all customer data to session
   const sessionWithProfile = {
     ...session,
+    customer_name: profile?.full_name || session.customer_name, // profile 이름 우선 사용
     birthdate: profile?.birthdate || null,
-    family_members_count: familyMembersCount,
-    device_model_name: deviceInfo?.model_name || null,
-    device_purchase_date: deviceInfo?.purchase_date || null,
-    plan_name: planInfo?.current_plan_type || null,
-    plan_price: planInfo?.current_plan_price || null,
+    family_members_count: 0, // 테이블 삭제됨
+    device_model_name: null, // 테이블 삭제됨
+    device_purchase_date: null, // 테이블 삭제됨
+    plan_name: demographics?.current_plan_type || null, // customer_demographics에서 조회
+    plan_price: demographics?.plan_price || null, // customer_demographics에서 조회
   }
 
   // Get predictions for all sessions of this customer
