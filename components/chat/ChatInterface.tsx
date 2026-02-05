@@ -522,17 +522,27 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
     await saveMessageToDB('user', customerType)
 
     // 경로 선택 단계로 이동
-    const assistantContent = '진행 방법을 선택해주세요.'
+    let pathSelectionContent = '진행 방법을 선택해주세요.'
+
+    // 가족결합인 경우 고객 유형에 따라 추천 멘트 추가
+    if (selectedBusiness === '가족결합') {
+      if (customerType === '개인') {
+        pathSelectionContent += '\n\n💡 요즘 가족 개인 결합 할인은 구비 필요한 서류가 적어, T-World 활용을 추천해요'
+      } else if (customerType === '가족') {
+        pathSelectionContent += '\n\n💡 요즘 가족 가족 결합 할인은 구비 필요한 서류가 많아, 대리점 방문을 추천해요'
+      }
+    }
+
     const assistantMessage: Message = {
       id: 'path-selection-' + crypto.randomUUID(),
       role: 'assistant',
-      content: assistantContent,
+      content: pathSelectionContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, assistantMessage])
 
     // DB에 저장
-    await saveMessageToDB('assistant', assistantContent)
+    await saveMessageToDB('assistant', pathSelectionContent)
 
     setFlowStep('PATH_SELECTION')
   }
