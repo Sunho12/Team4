@@ -536,11 +536,11 @@ export default function CustomerDetailPage() {
       case 'positive':
         return 'bg-green-500'
       case 'neutral':
-        return 'bg-gray-500'
+        return 'bg-amber-400'
       case 'negative':
         return 'bg-red-500'
       default:
-        return 'bg-gray-500'
+        return 'bg-amber-400'
     }
   }
 
@@ -1372,9 +1372,9 @@ export default function CustomerDetailPage() {
                           }
                         default:
                           return {
-                            accentColor: 'border-slate-500',
-                            iconColor: 'text-slate-600',
-                            iconBg: 'bg-slate-50'
+                            accentColor: 'border-amber-400',
+                            iconColor: 'text-amber-600',
+                            iconBg: 'bg-amber-50'
                           }
                       }
                     }

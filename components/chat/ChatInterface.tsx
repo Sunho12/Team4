@@ -153,8 +153,8 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   const [stores, setStores] = useState<StoreInfo[]>([])
   const [searchLocation, setSearchLocation] = useState('')
 
-  // 대리점 데이터 제공 동의 상태
-  const [isConsentChecked, setIsConsentChecked] = useState(false)
+  // 대리점 데이터 제공 동의 상태 ('agree', 'disagree', null)
+  const [consentStatus, setConsentStatus] = useState<'agree' | 'disagree' | null>(null)
 
   useEffect(() => {
     if (!conversationId) {
@@ -225,6 +225,78 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
 
   const sendMessage = async (content: string) => {
     if (!conversationId || !content.trim()) return
+
+    // 대화 종료 키워드 감지
+    const endKeywords = [
+      '대화종료', '대화 종료', '종료할게', '종료할게요', '종료', '끝', '끝낼게', '끝낼게요',
+      '상담종료', '상담 종료', '그만', '그만할게', '나가기', '나갈게', '종료하기', '종료해',
+      '종료해줘', '종료해주세요', '그만할래', '그만할래요', '끝내기', '끝내', '끝내줘',
+      '상담끝', '채팅종료', '채팅 종료', '대화끝', '대화 끝', '이만', '이만 할게'
+    ]
+    const normalizedContent = content.trim().toLowerCase()
+    const isEndKeyword = endKeywords.some(keyword => normalizedContent.includes(keyword.toLowerCase()))
+
+    if (isEndKeyword) {
+      setIsLoading(true)
+
+      // 사용자 메시지 추가 (로컬)
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content,
+        created_at: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, userMessage])
+
+      try {
+        // 사용자 메시지를 DB에 저장하고 AI 응답 받기
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId,
+            message: content,
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // AI가 생성한 종료 메시지 표시
+          const aiMessage: Message = {
+            id: data.messageId,
+            role: 'assistant',
+            content: data.response,
+            created_at: new Date().toISOString(),
+          }
+          setMessages((prev) => [...prev, aiMessage])
+        } else {
+          // API 실패 시 기본 메시지 표시
+          const confirmMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: '상담을 종료합니다. 잠시만 기다려주세요...',
+            created_at: new Date().toISOString(),
+          }
+          setMessages((prev) => [...prev, confirmMessage])
+        }
+
+        // 대화 종료 처리
+        await endConversation()
+      } catch (error) {
+        console.error('Failed to save message before ending:', error)
+        // 에러가 발생해도 종료 진행
+        const confirmMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: '상담을 종료합니다...',
+          created_at: new Date().toISOString(),
+        }
+        setMessages((prev) => [...prev, confirmMessage])
+
+        await endConversation()
+      }
+      return
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -322,11 +394,16 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
   }
 
   const endConversation = async () => {
-    if (!conversationId) return
+    if (!conversationId) {
+      console.error('No conversation ID available')
+      return
+    }
 
     setIsLoading(true)
 
     try {
+      console.log('[ChatInterface] Ending conversation:', conversationId)
+
       const response = await fetch('/api/chat/end', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -335,21 +412,72 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
 
       if (response.ok) {
         const data = await response.json()
-        setSummary(data.summary)
+        console.log('[ChatInterface] Conversation ended successfully:', data)
+
+        // summary가 있으면 설정, 없으면 기본값 설정
+        if (data.summary) {
+          setSummary(data.summary)
+        } else {
+          // summary 생성 실패 시 기본 summary 설정
+          setSummary({
+            summary: '대화가 종료되었습니다.',
+            category: '일반 문의',
+            keywords: [],
+            sentiment: 'neutral'
+          })
+        }
         setPredictions(data.predictions)
+      } else {
+        const errorData = await response.json().catch(() => ({ error: '알 수 없는 오류' }))
+        console.error('[ChatInterface] Failed to end conversation:', errorData)
+
+        // 에러가 발생해도 종료 화면 표시
+        setSummary({
+          summary: '대화가 종료되었습니다. 요약 생성 중 오류가 발생했습니다.',
+          category: '일반 문의',
+          keywords: [],
+          sentiment: 'neutral'
+        })
       }
     } catch (error) {
-      console.error('Failed to end conversation:', error)
+      console.error('[ChatInterface] Error ending conversation:', error)
+
+      // 네트워크 에러가 발생해도 종료 화면 표시
+      setSummary({
+        summary: '대화가 종료되었습니다. 네트워크 오류로 인해 요약을 생성할 수 없습니다.',
+        category: '일반 문의',
+        keywords: [],
+        sentiment: 'neutral'
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
+  // 메시지를 DB에 저장하는 helper 함수
+  const saveMessageToDB = async (role: 'user' | 'assistant', content: string) => {
+    if (!conversationId) return
+
+    try {
+      await fetch('/api/chat/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          role,
+          content
+        })
+      })
+    } catch (error) {
+      console.error('Failed to save message to DB:', error)
+    }
+  }
+
   // 업무 구분 선택 핸들러
-  const handleBusinessTypeSelect = (businessType: string) => {
+  const handleBusinessTypeSelect = async (businessType: string) => {
     setSelectedBusiness(businessType)
 
-    // 사용자 메시지만 추가 (API 호출 없이)
+    // 사용자 메시지 추가
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -358,22 +486,30 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
     }
     setMessages((prev) => [...prev, userMessage])
 
+    // DB에 저장
+    await saveMessageToDB('user', businessType)
+
     // 고객 유형 선택 단계로 이동
+    const assistantContent = '고객 유형을 선택해주세요.'
     const assistantMessage: Message = {
       id: 'customer-type-' + crypto.randomUUID(),
       role: 'assistant',
-      content: '고객 유형을 선택해주세요.',
+      content: assistantContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, assistantMessage])
+
+    // DB에 저장
+    await saveMessageToDB('assistant', assistantContent)
+
     setFlowStep('CUSTOMER_TYPE')
   }
 
   // 고객 유형 선택 핸들러
-  const handleCustomerTypeSelect = (customerType: string) => {
+  const handleCustomerTypeSelect = async (customerType: string) => {
     setSelectedCustomerType(customerType)
 
-    // 사용자 메시지만 추가 (API 호출 없이)
+    // 사용자 메시지 추가
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -382,50 +518,66 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
     }
     setMessages((prev) => [...prev, userMessage])
 
+    // DB에 저장
+    await saveMessageToDB('user', customerType)
+
     // 경로 선택 단계로 이동
+    const assistantContent = '진행 방법을 선택해주세요.'
     const assistantMessage: Message = {
       id: 'path-selection-' + crypto.randomUUID(),
       role: 'assistant',
-      content: '진행 방법을 선택해주세요.',
+      content: assistantContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, assistantMessage])
+
+    // DB에 저장
+    await saveMessageToDB('assistant', assistantContent)
+
     setFlowStep('PATH_SELECTION')
   }
 
   // 경로 선택 핸들러
-  const handlePathSelect = (path: string) => {
+  const handlePathSelect = async (path: string) => {
     setSelectedPath(path)
 
-    // 사용자 메시지만 추가 (API 호출 없이)
+    // 사용자 메시지 추가
+    const userContent = path === 'online' ? '온라인으로 진행 예정' : '대리점 방문 예정'
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: path === 'online' ? '온라인으로 진행 예정' : '대리점 방문 예정',
+      content: userContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, userMessage])
 
+    // DB에 저장
+    await saveMessageToDB('user', userContent)
+
     if (path === 'online') {
       // 가족결합 + 개인 + 온라인 → 회선 선택
       if (selectedBusiness === '가족결합' && selectedCustomerType === '개인') {
+        const assistantContent = '어떤 회선을 고려중이신가요?'
         const assistantMessage: Message = {
           id: 'line-type-' + crypto.randomUUID(),
           role: 'assistant',
-          content: '어떤 회선을 고려중이신가요?',
+          content: assistantContent,
           created_at: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, assistantMessage])
+        await saveMessageToDB('assistant', assistantContent)
         setFlowStep('LINE_TYPE')
       } else {
         // 일반 온라인 진행 → 자유 대화
+        const assistantContent = '무엇을 도와드릴까요? 궁금하신 점을 편하게 물어보세요.'
         const assistantMessage: Message = {
           id: 'free-chat-' + crypto.randomUUID(),
           role: 'assistant',
-          content: '무엇을 도와드릴까요? 궁금하신 점을 편하게 물어보세요.',
+          content: assistantContent,
           created_at: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, assistantMessage])
+        await saveMessageToDB('assistant', assistantContent)
         setFlowStep('FREE_CHAT')
       }
     } else {
@@ -438,31 +590,35 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
           '주민등록등본 (가족관계 확인용)',
         ]
         const documentList = documents.map((doc, idx) => `${idx + 1}. ${doc}`).join('\n')
+        const assistantContent = `가족결합 신청을 위해 필요한 서류는 다음과 같습니다:\n\n${documentList}\n\n근처 대리점을 추천해드릴까요?`
 
         const assistantMessage: Message = {
           id: 'documents-' + crypto.randomUUID(),
           role: 'assistant',
-          content: `가족결합 신청을 위해 필요한 서류는 다음과 같습니다:\n\n${documentList}\n\n근처 대리점을 추천해드릴까요?`,
+          content: assistantContent,
           created_at: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, assistantMessage])
+        await saveMessageToDB('assistant', assistantContent)
         setFlowStep('REQUIRED_DOCUMENTS')
       } else {
         // 일반 대리점 방문 → 방문자 유형 선택
+        const assistantContent = '대리점에 누가 방문하시나요?'
         const assistantMessage: Message = {
           id: 'visitor-type-' + crypto.randomUUID(),
           role: 'assistant',
-          content: '대리점에 누가 방문하시나요?',
+          content: assistantContent,
           created_at: new Date().toISOString(),
         }
         setMessages((prev) => [...prev, assistantMessage])
+        await saveMessageToDB('assistant', assistantContent)
         setFlowStep('VISITOR_TYPE')
       }
     }
   }
 
   // 회선 종류 선택 핸들러 (가족결합 전용)
-  const handleLineTypeSelect = (lineType: string) => {
+  const handleLineTypeSelect = async (lineType: string) => {
     setSelectedLineType(lineType)
 
     // 사용자 메시지 추가
@@ -473,58 +629,67 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, userMessage])
+    await saveMessageToDB('user', lineType)
 
     // 개인정보 동의 안내
+    const assistantContent = '가족결합 신청을 위해 개인정보 수집 및 이용에 대한 동의가 필요합니다.\n\n[수집 항목]\n- 이름, 생년월일, 연락처\n- 회선 정보, 요금제 정보\n- 가족 구성원 정보\n\n[이용 목적]\n- 가족결합 할인 신청 및 관리\n- 요금 정산 및 청구\n\n동의하시겠습니까?'
     const assistantMessage: Message = {
       id: 'consent-' + crypto.randomUUID(),
       role: 'assistant',
-      content: '가족결합 신청을 위해 개인정보 수집 및 이용에 대한 동의가 필요합니다.\n\n[수집 항목]\n- 이름, 생년월일, 연락처\n- 회선 정보, 요금제 정보\n- 가족 구성원 정보\n\n[이용 목적]\n- 가족결합 할인 신청 및 관리\n- 요금 정산 및 청구\n\n동의하시겠습니까?',
+      content: assistantContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, assistantMessage])
+    await saveMessageToDB('assistant', assistantContent)
     setFlowStep('CONSENT')
   }
 
   // 개인정보 동의 핸들러
-  const handleConsentSelect = (consent: string) => {
+  const handleConsentSelect = async (consent: string) => {
     // 사용자 메시지 추가
+    const userContent = consent === 'agree' ? '동의합니다' : '동의하지 않습니다'
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: consent === 'agree' ? '동의합니다' : '동의하지 않습니다',
+      content: userContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, userMessage])
+    await saveMessageToDB('user', userContent)
 
     if (consent === 'agree') {
       // 동의 시 완료 모달 표시
+      const assistantContent = '감사합니다. 고객님의 회선 정보가 파악되었습니다.'
       const assistantMessage: Message = {
         id: 'complete-' + crypto.randomUUID(),
         role: 'assistant',
-        content: '감사합니다. 고객님의 회선 정보가 파악되었습니다.',
+        content: assistantContent,
         created_at: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, assistantMessage])
+      await saveMessageToDB('assistant', assistantContent)
       setIsCompleteModalOpen(true)
       setFlowStep('FREE_CHAT')
     } else {
       // 미동의 시
+      const assistantContent = '개인정보 동의 없이는 가족결합 신청이 어렵습니다. 다른 문의사항이 있으시면 말씀해주세요.'
       const assistantMessage: Message = {
         id: 'disagree-' + crypto.randomUUID(),
         role: 'assistant',
-        content: '개인정보 동의 없이는 가족결합 신청이 어렵습니다. 다른 문의사항이 있으시면 말씀해주세요.',
+        content: assistantContent,
         created_at: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, assistantMessage])
+      await saveMessageToDB('assistant', assistantContent)
       setFlowStep('FREE_CHAT')
     }
   }
 
   // 방문자 유형 선택 핸들러
-  const handleVisitorTypeSelect = (visitorType: string) => {
+  const handleVisitorTypeSelect = async (visitorType: string) => {
     setSelectedVisitorType(visitorType)
 
-    // 사용자 메시지만 추가 (API 호출 없이)
+    // 사용자 메시지 추가
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -532,49 +697,58 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, userMessage])
+    await saveMessageToDB('user', visitorType)
 
     // 필요 서류 안내
     const documents = REQUIRED_DOCUMENTS[selectedBusiness]?.[visitorType] || []
     const documentList = documents.map((doc, idx) => `${idx + 1}. ${doc}`).join('\n')
+    const assistantContent = `${selectedBusiness} 업무를 위해 ${visitorType} 방문 시 필요한 서류는 다음과 같습니다:\n\n${documentList}\n\n근처 대리점을 추천해드릴까요?`
 
     const assistantMessage: Message = {
       id: 'documents-' + crypto.randomUUID(),
       role: 'assistant',
-      content: `${selectedBusiness} 업무를 위해 ${visitorType} 방문 시 필요한 서류는 다음과 같습니다:\n\n${documentList}\n\n근처 대리점을 추천해드릴까요?`,
+      content: assistantContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, assistantMessage])
+    await saveMessageToDB('assistant', assistantContent)
     setFlowStep('REQUIRED_DOCUMENTS')
   }
 
   // 대리점 추천 응답 핸들러
-  const handleStoreRecommendation = (wantsRecommendation: boolean) => {
-    // 사용자 메시지만 추가 (API 호출 없이)
+  const handleStoreRecommendation = async (wantsRecommendation: boolean) => {
+    // 사용자 메시지 추가
+    const userContent = wantsRecommendation ? '네, 추천해주세요' : '아니요, 괜찮습니다'
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: wantsRecommendation ? '네, 추천해주세요' : '아니요, 괜찮습니다',
+      content: userContent,
       created_at: new Date().toISOString(),
     }
     setMessages((prev) => [...prev, userMessage])
+    await saveMessageToDB('user', userContent)
 
     if (wantsRecommendation) {
+      const assistantContent = '어느 지역의 대리점을 찾으시나요? 지역명을 입력해주세요.\n(예: 강남구, 서초동, 판교역 등)'
       const assistantMessage: Message = {
         id: 'location-' + crypto.randomUUID(),
         role: 'assistant',
-        content: '어느 지역의 대리점을 찾으시나요? 지역명을 입력해주세요.\n(예: 강남구, 서초동, 판교역 등)',
+        content: assistantContent,
         created_at: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, assistantMessage])
+      await saveMessageToDB('assistant', assistantContent)
       setFlowStep('LOCATION_INPUT')
     } else {
+      const assistantContent = '알겠습니다. 필요한 서류를 준비하셔서 방문해주시기 바랍니다. 다른 도움이 필요하시면 말씀해주세요!'
       const assistantMessage: Message = {
         id: 'end-' + crypto.randomUUID(),
         role: 'assistant',
-        content: '알겠습니다. 필요한 서류를 준비하셔서 방문해주시기 바랍니다. 다른 도움이 필요하시면 말씀해주세요!',
+        content: assistantContent,
         created_at: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, assistantMessage])
+      await saveMessageToDB('assistant', assistantContent)
       setFlowStep('FREE_CHAT')
     }
   }
@@ -606,52 +780,69 @@ export function ChatInterface({ sessionToken, conversationId, onConversationCrea
 
             {/* 대리점 데이터 제공 동의 섹션 */}
             <div className="mt-6 pt-6 border-t border-gray-200">
-              <label
-                htmlFor="consent-checkbox"
-                className="flex items-start gap-3 cursor-pointer group"
-              >
-                <div className="relative flex items-center justify-center pt-0.5">
-                  <input
-                    id="consent-checkbox"
-                    type="checkbox"
-                    checked={isConsentChecked}
-                    onChange={(e) => setIsConsentChecked(e.target.checked)}
-                    className="peer w-5 h-5 rounded border-2 border-gray-300 text-[#3617CE]
-                             focus:ring-2 focus:ring-[#3617CE] focus:ring-offset-2
-                             cursor-pointer transition-all
-                             checked:bg-[#3617CE] checked:border-[#3617CE]
-                             hover:border-[#3617CE]"
-                    style={{
-                      accentColor: '#3617CE',
-                      minWidth: '20px',
-                      minHeight: '20px'
-                    }}
-                  />
+              <div className="mb-4">
+                <p className="text-sm mb-3" style={{ color: '#444', lineHeight: '1.6' }}>
+                  원활한 상담을 위해 상담 내용이 대리점에 제공되는 것에 동의하시나요?
+                </p>
+
+                {/* 토글 버튼 */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConsentStatus('agree')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+                      consentStatus === 'agree'
+                        ? 'bg-[#3617CE] text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    ✓ 동의합니다
+                  </button>
+                  <button
+                    onClick={() => setConsentStatus('disagree')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+                      consentStatus === 'disagree'
+                        ? 'bg-gray-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    ✗ 동의하지 않습니다
+                  </button>
                 </div>
-                <span
-                  className="text-sm leading-relaxed select-none"
-                  style={{
-                    color: '#444',
-                    fontSize: '14px',
-                    lineHeight: '1.6'
-                  }}
-                >
-                  원활한 상담을 위해 상담 내용이 대리점에 제공되는 것에 동의합니다. <span className="text-[#EA002C] font-semibold">(필수)</span>
-                </span>
-              </label>
+
+                {consentStatus === 'disagree' && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    동의하지 않으시면 상담 내용이 대리점에 전달되지 않습니다.
+                  </p>
+                )}
+              </div>
             </div>
 
             <Button
-              onClick={() => {
+              onClick={async () => {
+                // 동의한 경우에만 DB에 저장
+                if (consentStatus === 'agree' && conversationId) {
+                  try {
+                    await fetch('/api/agency/consent', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        conversationId,
+                        consent: true
+                      })
+                    })
+                  } catch (error) {
+                    console.error('Failed to save consent:', error)
+                  }
+                }
                 router.push('/tworld')
               }}
-              disabled={!isConsentChecked}
+              disabled={consentStatus === null}
               className="w-full mt-6 transition-all duration-300"
               style={{
-                backgroundColor: isConsentChecked ? '#3617CE' : '#3617CE',
-                opacity: isConsentChecked ? 1 : 0.5,
-                cursor: isConsentChecked ? 'pointer' : 'not-allowed',
-                pointerEvents: isConsentChecked ? 'auto' : 'none'
+                backgroundColor: consentStatus !== null ? '#3617CE' : '#3617CE',
+                opacity: consentStatus !== null ? 1 : 0.5,
+                cursor: consentStatus !== null ? 'pointer' : 'not-allowed',
+                pointerEvents: consentStatus !== null ? 'auto' : 'none'
               }}
             >
               홈으로 돌아가기

@@ -12,6 +12,8 @@ export interface SummaryResult {
 export async function generateSummary(conversationId: string): Promise<SummaryResult> {
   const supabase = await createServiceRoleClient()
 
+  console.log('[Summarize] Starting summary generation for conversation:', conversationId)
+
   // Fetch messages and conversation to get session_id
   const [messagesResponse, conversationResponse] = await Promise.all([
     supabase
@@ -29,17 +31,54 @@ export async function generateSummary(conversationId: string): Promise<SummaryRe
   const { data: messages, error: messagesError } = messagesResponse
   const { data: conversation, error: conversationError } = conversationResponse
 
-  if (messagesError || !messages || messages.length === 0) {
-    throw new Error('Failed to fetch messages for summarization')
+  console.log('[Summarize] Messages fetched:', {
+    count: messages?.length || 0,
+    hasError: !!messagesError,
+    error: messagesError
+  })
+
+  if (messagesError) {
+    throw new Error(`Failed to fetch messages: ${messagesError.message}`)
   }
 
-  if (conversationError || !conversation) {
-    throw new Error('Failed to fetch conversation data')
+  if (conversationError) {
+    throw new Error(`Failed to fetch conversation: ${conversationError.message}`)
+  }
+
+  if (!conversation) {
+    throw new Error('Conversation not found')
+  }
+
+  // 메시지가 없거나 매우 적을 때 기본 요약 생성
+  if (!messages || messages.length === 0) {
+    console.log('[Summarize] No messages found, creating default summary')
+    const defaultSummary: SummaryResult = {
+      summary: '고객이 상담을 시작했으나 메시지 없이 종료했습니다.',
+      category: '일반 문의',
+      keywords: [],
+      sentiment: 'neutral'
+    }
+
+    // DB에 저장
+    await supabase
+      .from('conversation_summaries')
+      .insert({
+        conversation_id: conversationId,
+        session_id: conversation.session_id,
+        summary: defaultSummary.summary,
+        category: defaultSummary.category,
+        keywords: defaultSummary.keywords,
+        sentiment: defaultSummary.sentiment,
+      })
+
+    return defaultSummary
   }
 
   const conversationText = messages
     .map((m) => `${m.role}: ${m.content}`)
     .join('\n')
+
+  console.log('[Summarize] Calling OpenAI for summary generation')
 
   const response = await openai.chat.completions.create({
     model: MODELS.CHAT,
@@ -52,6 +91,7 @@ export async function generateSummary(conversationId: string): Promise<SummaryRe
   })
 
   const summaryData = JSON.parse(response.choices[0].message.content || '{}')
+  console.log('[Summarize] OpenAI summary generated:', summaryData)
 
   const { error: insertError } = await supabase
     .from('conversation_summaries')
@@ -65,8 +105,10 @@ export async function generateSummary(conversationId: string): Promise<SummaryRe
     })
 
   if (insertError) {
-    console.error('Error saving summary:', insertError)
+    console.error('[Summarize] Error saving summary:', insertError)
+    throw new Error(`Failed to save summary: ${insertError.message}`)
   }
 
+  console.log('[Summarize] Summary saved successfully')
   return summaryData
 }
